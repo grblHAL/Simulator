@@ -62,9 +62,9 @@ static void limitsEnable (bool on, bool homing)
 {
 }
 
-static axes_signals_t limitsGetState()
+static limit_signals_t limitsGetState()
 {
-    axes_signals_t signals = {0};
+    limit_signals_t signals = {0};
 
     return signals;
 }

@@ -17,7 +17,6 @@
 
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
-
 */
 
 #include "mcu.h"
@@ -137,14 +136,14 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
     }
 }
 
-static axes_signals_t limitsGetState()
+static limit_signals_t limitsGetState()
 {
-    axes_signals_t signals = {0};
+    limit_signals_t signals = {0};
 
-    signals.value = gpio[LIMITS_PORT0].state.value;
+    signals.min.value = gpio[LIMITS_PORT0].state.value;
 
     if (settings.limits.invert.mask)
-        signals.value ^= settings.limits.invert.mask;
+        signals.min.value ^= settings.limits.invert.mask;
 
     return signals;
 }
@@ -160,29 +159,27 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 
 // Returns limit state as an axes_signals_t variable.
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
-static axes_signals_t limitsGetHomeState()
+static limit_signals_t limitsGetHomeState()
 {
-    axes_signals_t signals_min = {0}, signals_max = {0};
+    limit_signals_t signals = {0};
     
     if(motors_0.mask) {
 
-        signals_min.mask = gpio[LIMITS_PORT0].state.value;
+        signals.min.mask = gpio[LIMITS_PORT0].state.value;
 
         if (settings.limits.invert.mask)
-            signals_min.mask ^= settings.limits.invert.mask;
+            signals.min.mask ^= settings.limits.invert.mask;
     }
 
     if(motors_1.mask) {
 
-       signals_max.mask = gpio[LIMITS_PORT1].state.value;
+       signals.max.mask = gpio[LIMITS_PORT1].state.value;
 
         if (settings.limits.invert.mask)
-            signals_max.mask ^= settings.limits.invert.mask;
+            signals.max.mask ^= settings.limits.invert.mask;
     }
 
-    signals_min.mask |= signals_max.mask;
-
-    return signals_min;
+    return signals;
 }
 
 #endif
