@@ -138,7 +138,12 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
 static limit_signals_t limitsGetState()
 {
-    limit_signals_t signals = {0};
+    limit_signals_t signals = {
+		.min.mask = 0,
+		.max.mask = 0,
+		.min2.mask = 0,
+		.max2.mask = 0
+	};
 
     signals.min.value = gpio[LIMITS_PORT0].state.value;
 
@@ -161,8 +166,13 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
 static limit_signals_t limitsGetHomeState()
 {
-    limit_signals_t signals = {0};
-    
+    limit_signals_t signals = {
+		.min.mask = 0,
+		.max.mask = 0,
+		.min2.mask = 0,
+		.max2.mask = 0
+	};
+	
     if(motors_0.mask) {
 
         signals.min.mask = gpio[LIMITS_PORT0].state.value;
@@ -378,7 +388,7 @@ bool driver_init ()
     serialInit();
 
     hal.info = "Simulator";
-    hal.driver_version = "210131";
+    hal.driver_version = "210518";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;

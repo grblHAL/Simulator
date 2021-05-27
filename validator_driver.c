@@ -64,7 +64,12 @@ static void limitsEnable (bool on, bool homing)
 
 static limit_signals_t limitsGetState()
 {
-    limit_signals_t signals = {0};
+    limit_signals_t signals = {
+		.min.mask = 0,
+		.max.mask = 0,
+		.min2.mask = 0,
+		.max2.mask = 0
+	};
 
     return signals;
 }
@@ -173,7 +178,7 @@ uint16_t serial_get_rx_buffer_available()
 bool driver_init ()
 {
     hal.info = "Validator";
-    hal.driver_version = "210131";
+    hal.driver_version = "210518";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
