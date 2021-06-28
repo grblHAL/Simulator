@@ -388,7 +388,7 @@ bool driver_init ()
     serialInit();
 
     hal.info = "Simulator";
-    hal.driver_version = "210518";
+    hal.driver_version = "210628";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -429,7 +429,7 @@ bool driver_init ()
     hal.show_message = showMessage;
 */
     hal.stream.read = serialGetC;
-    hal.stream.get_rx_buffer_available = serialRxFree;
+    hal.stream.get_rx_buffer_free = serialRxFree;
     hal.stream.reset_read_buffer = serialRxFlush;
     hal.stream.cancel_read_buffer = serialRxCancel;
     hal.stream.write = serialWriteS;
