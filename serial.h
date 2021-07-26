@@ -3,9 +3,9 @@
 
   Driver code for simulator MCU
 
-  Part of GrblHAL
+  Part of grblHAL
 
-  Copyright (c) 2017-2019 Terje Io
+  Copyright (c) 2017-2021 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,14 +25,8 @@
 #ifndef _HAL_SERIAL_H_
 #define _HAL_SERIAL_H_
 
-#include "grbl/grbl.h"
+#include "grbl/stream.h"
 
-void serialInit (void);
-int16_t serialGetC (void);
-void serialWriteS (const char *data);
-bool serialSuspendInput (bool suspend);
-uint16_t serialRxFree (void);
-void serialRxFlush (void);
-void serialRxCancel (void);
+const io_stream_t *serialInit (void);
 
 #endif

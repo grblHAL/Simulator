@@ -3,7 +3,7 @@
 #  Copyright (c) 2012 Jens Geisler
 #  Copyright (c) 2014-2015 Adam Shelly
 #
-#  2020 - modified for grblHAL by Terje Io
+#  2020-2021 - modified for grblHAL by Terje Io
 #
 #  Grbl is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 PLATFORM   = LINUX
 
 #The original grbl code, except those files overriden by sim
-GRBL_BASE_OBJECTS = grbl/grbllib.o grbl/protocol.o grbl/planner.o grbl/settings.o grbl/nuts_bolts.o grbl/stepper.o grbl/gcode.o grbl/spindle_control.o grbl/motion_control.o grbl/limits.o grbl/coolant_control.o grbl/system.o grbl/report.o grbl/state_machine.o grbl/override.o grbl/nvs_buffer.o grbl/sleep.o grbl/tool_change.o grbl/my_plugin.o
+GRBL_BASE_OBJECTS = grbl/grbllib.o grbl/protocol.o grbl/planner.o grbl/settings.o grbl/nuts_bolts.o grbl/stepper.o grbl/gcode.o grbl/stream.o grbl/spindle_control.o grbl/motion_control.o grbl/limits.o grbl/coolant_control.o grbl/system.o grbl/report.o grbl/state_machine.o grbl/override.o grbl/nvs_buffer.o grbl/sleep.o grbl/tool_change.o grbl/my_plugin.o
 
 # Simulator Only Objects
 SIM_OBJECTS = main.o simulator.o driver.o eeprom.o grbl_eeprom_extensions.o mcu.o serial.o platform_$(PLATFORM).o

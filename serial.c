@@ -3,9 +3,9 @@
 
   Driver code for simulator MCU
 
-  Part of GrblHAL
+  Part of grblHAL
 
-  Copyright (c) 2017-2020 Terje Io
+  Copyright (c) 2017-2021 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,23 +28,18 @@
 #include "simulator.h"
 
 #include "grbl/hal.h"
+#include "grbl/protocol.h"
 
 static stream_tx_buffer_t txbuffer = {0};
-static stream_rx_buffer_t rxbuffer = {0}, rxbackup;
+static stream_rx_buffer_t rxbuffer = {0};
+static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 static void uart_interrupt_handler (void);
-
-void serialInit (void)
-{
-    mcu_register_irq_handler(uart_interrupt_handler, UART_IRQ);
-
-    uart.rx_irq_enable = 1;
-}
 
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t serialGetC (void)
+static int16_t serialGetC (void)
 {
     int16_t data;
     uint_fast16_t bptr = rxbuffer.tail;
@@ -65,25 +60,25 @@ static inline uint16_t serialRxCount (void)
     return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
 
-uint16_t serialRxFree (void)
+static uint16_t serialRxFree (void)
 {
     return (RX_BUFFER_SIZE - 1) - serialRxCount();
 }
 
-void serialRxFlush (void)
+static void serialRxFlush (void)
 {
     rxbuffer.tail = rxbuffer.head;
     rxbuffer.overflow = false;
 }
 
-void serialRxCancel (void)
+static void serialRxCancel (void)
 {
     serialRxFlush();
     rxbuffer.data[rxbuffer.head] = ASCII_CAN;
     rxbuffer.head = (rxbuffer.tail + 1) & (RX_BUFFER_SIZE - 1);
 }
 
-bool serialPutC (const char c)
+static bool serialPutC (const char c)
 {
     uint_fast16_t next_head;
 
@@ -105,7 +100,7 @@ bool serialPutC (const char c)
     return true;
 }
 
-void serialWriteS (const char *data)
+static void serialWriteS (const char *data)
 {
     char c, *ptr = (char *)data;
 
@@ -119,21 +114,50 @@ static int16_t serialGetNull (void)
     return -1;
 }
 
-bool serialSuspendInput (bool suspend)
+static bool serialSuspendInput (bool suspend)
 {
-    if(suspend)
-        hal.stream.read = serialGetNull;
-    else if(rxbuffer.backup)
-        memcpy(&rxbuffer, &rxbackup, sizeof(stream_rx_buffer_t));
-
-    return rxbuffer.tail != rxbuffer.head;
+    return stream_rx_suspend(&rxbuffer, suspend);
 }
 
-uint16_t serialTxCount(void) {
+static uint16_t serialTxCount(void) {
 
     uint_fast16_t head = txbuffer.head, tail = txbuffer.tail;
 
     return BUFCOUNT(head, tail, TX_BUFFER_SIZE);
+}
+
+static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command;
+
+    if(handler)
+        enqueue_realtime_command = handler;
+
+    return prev;
+}
+
+const io_stream_t *serialInit (void)
+{
+        static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = true,
+        .read = serialGetC,
+        .write = serialWriteS,
+        .write_char = serialPutC,
+        .write_all = serialWriteS,
+        .get_rx_buffer_free = serialRxFree,
+        .get_rx_buffer_count = serialRxCount,
+        .reset_read_buffer = serialRxFlush,
+        .cancel_read_buffer = serialRxCancel,
+        .suspend_read = serialSuspendInput,
+        .set_enqueue_rt_handler = serialSetRtHandler
+    };
+
+    mcu_register_irq_handler(uart_interrupt_handler, UART_IRQ);
+
+    uart.rx_irq_enable = 1;
+    
+    return &stream;
 }
 
 static void uart_interrupt_handler (void)
@@ -171,13 +195,7 @@ static void uart_interrupt_handler (void)
             uart.rx_irq = 0;
             if(data == 0x06)
                 sim.exit = exit_REQ;
-            else if(data == CMD_TOOL_ACK && !rxbuffer.backup) {
-                memcpy(&rxbackup, &rxbuffer, sizeof(stream_rx_buffer_t));
-                rxbuffer.backup = true;
-                rxbuffer.tail = rxbuffer.head;
-                hal.stream.read = serialGetC; // restore normal input
-
-            } else if(!hal.stream.enqueue_realtime_command((char)data)) {
+            if(!enqueue_realtime_command((char)data)) {
                 rxbuffer.data[rxbuffer.head] = (char)data;  // Add data to buffer
                 rxbuffer.head = bptr;                       // and update pointer
             }

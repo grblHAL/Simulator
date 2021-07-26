@@ -6,7 +6,7 @@
   Copyright (c) 2012 Jens Geisler
   Copyright (c) 2014-2015 Adam Shelly
 
-  2020 - modified for grblHAL by Terje Io
+  2020-2021 - modified for grblHAL by Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@
 #include "simulator.h"
 
 #include "grbl/hal.h"
+#include "grbl/protocol.h"
 #include "grbl/state_machine.h"
 
 int block_position[N_AXIS] = {0}; //step count after most recently planned block
@@ -125,7 +126,7 @@ void grbl_per_byte (void)
                 break;
 
             case '?':
-                hal.stream.enqueue_realtime_command(CMD_STATUS_REPORT_ALL);
+                protocol_enqueue_realtime_command(CMD_STATUS_REPORT_ALL);
                 break;
 
             case 0x06:

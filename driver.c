@@ -385,10 +385,8 @@ bool driver_init ()
     systick_timer.load = F_CPU / 1000 - 1;
     systick_timer.irq_enable = 1;
 
-    serialInit();
-
     hal.info = "Simulator";
-    hal.driver_version = "210628";
+    hal.driver_version = "210716";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -428,13 +426,7 @@ bool driver_init ()
 /*
     hal.show_message = showMessage;
 */
-    hal.stream.read = serialGetC;
-    hal.stream.get_rx_buffer_free = serialRxFree;
-    hal.stream.reset_read_buffer = serialRxFlush;
-    hal.stream.cancel_read_buffer = serialRxCancel;
-    hal.stream.write = serialWriteS;
-    hal.stream.write_all = serialWriteS;
-    hal.stream.suspend_read = serialSuspendInput;
+    memcpy(&hal.stream, serialInit(), sizeof(io_stream_t));
 
     hal.nvs.type = NVS_EEPROM;
     hal.nvs.get_byte = eeprom_get_char;
