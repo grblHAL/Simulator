@@ -178,7 +178,7 @@ uint16_t serial_get_rx_buffer_available()
 bool driver_init ()
 {
     hal.info = "Validator";
-    hal.driver_version = "210518";
+    hal.driver_version = "211121";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -238,5 +238,5 @@ bool driver_init ()
     hal.driver_cap.probe_pull_up = On;
 
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
-    return hal.version == 7;
+    return hal.version == 9;
 }

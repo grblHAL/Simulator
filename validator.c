@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     // Clear all and set some core function pointers
     memset(&grbl, 0, sizeof(grbl_t));
     grbl.on_execute_realtime = protocol_execute_noop;
-    grbl.protocol_enqueue_gcode = protocol_enqueue_gcode;
+    grbl.enqueue_gcode = protocol_enqueue_gcode;
 
     // Clear all and set some HAL function pointers
     memset(&hal, 0, sizeof(grbl_hal_t));

@@ -366,7 +366,7 @@ bool driver_setup (settings_t *settings)
     hal.spindle.set_state((spindle_state_t){0}, 0.0f);
     hal.coolant.set_state((coolant_state_t){0});
 
-    return settings->version == 19;
+    return settings->version == 21;
 }
 
 // used to inject a sleep in grbl main loop, 
@@ -386,7 +386,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "210716";
+    hal.driver_version = "211121";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -461,7 +461,7 @@ bool driver_init ()
  //   hal.driver_cap.axis_ganged_x = On;
 #endif
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
-    return hal.version == 8;
+    return hal.version == 9;
 }
 
 // Main stepper driver
