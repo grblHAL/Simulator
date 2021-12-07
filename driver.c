@@ -19,6 +19,8 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <string.h>
+
 #include "mcu.h"
 #include "driver.h"
 #include "serial.h"

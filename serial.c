@@ -108,12 +108,6 @@ static void serialWriteS (const char *data)
         serialPutC(c);
 }
 
-// "dummy" version of serialGetC
-static int16_t serialGetNull (void)
-{
-    return -1;
-}
-
 static bool serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&rxbuffer, suspend);
@@ -140,7 +134,7 @@ const io_stream_t *serialInit (void)
 {
         static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .connected = true,
+        .state.connected = true,
         .read = serialGetC,
         .write = serialWriteS,
         .write_char = serialPutC,
