@@ -18,6 +18,7 @@ $ git clone --recurse-submodules <url>
 Create a build directory
 
 ```
+$ cd grblHAL-sim
 $ mkdir build 
 ```
 
