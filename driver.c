@@ -443,13 +443,7 @@ bool driver_init ()
   // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
     hal.driver_cap.amass_level = 3;
-    hal.driver_cap.spindle_dir = On;
 
-    hal.driver_cap.variable_spindle = On;
-    hal.driver_cap.spindle_dir = On;
-
-    hal.driver_cap.variable_spindle = On;
-    hal.driver_cap.spindle_pwm_invert = On;
     hal.driver_cap.spindle_pwm_linearization = On;
     hal.driver_cap.mist_control = On;
 //    hal.driver_cap.software_debounce = On;
