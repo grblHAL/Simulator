@@ -22,6 +22,14 @@ $RECYCLE.BIN/
 
 .svn
 
+# Eclipse folders
+
+.settings
+
+# STM32 .ioc files
+
+*.ioc
+
 # Build folder
 
 build
@@ -31,12 +39,5 @@ build
 # Operating System Files
 # =========================
 
-.vscode
-
-# make output
-*.o
-*.exe
-
-# run output
-*.out
-*.DAT
+.vscode/settings.json
+.vscode/c_cpp_properties.json

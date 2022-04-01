@@ -1,5 +1,5 @@
 /*
-  platform_LINUX.c - linux specific functions with generic cross-platform interface
+  platform_linux.c - linux specific functions with generic cross-platform interface
 
   Part of Grbl Simulator
 

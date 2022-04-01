@@ -1,8 +1,8 @@
 #ifndef platform_h
 
-#ifdef  PLAT_LINUX
+#ifdef  PLATFORM_LINUX
 #include "platform_linux.h"
-#elif  PLAT_OSX
+#elif  PLATFORM_OSX
 #include "platform_osx.h"
 #else
 #include "platform_windows.h"
