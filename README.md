@@ -1,14 +1,5 @@
 # GRBL SIM 
 
-## Maintainers
-- Created by Jens Geisler, Adam Shelly
-
-- Modified by Terje Io for grblHAL. Original implementation for Grbl can be found [here](https://github.com/grbl/grbl-sim).
-
-This repository contains an experimental Grbl simulator that compiles the main Grbl source code into a wrapped executable for use on a computer. No microcontroller required. When the executable is run, the user should be able to interact with the Grbl simulator as if connected to a microcontroller board with Grbl.
-
-*WARNING: Grbl Sim is under heavy development.* So many things may not work, or respond in ways unexpected. At the moment, this code is a proof-of-concept.
-
 ## What can you do with Grbl Sim? 
 
  - Simply check out how Grbl works without needing a microcontroller.
@@ -27,7 +18,7 @@ $ git clone --recurse-submodules <url>
 Create a build directory
 
 ```
-$ cd grblHAL-sim
+$ cd Simulator
 $ mkdir build 
 ```
 
@@ -71,24 +62,6 @@ In the setup press the A key and change the serial device to GRBL.
   Now simulates microcontroller peripherals in separate thread.  Runs in *aproximate* realtime.  Emphasis on  * **Approximate** *.  Work is underway to speed it up.
 
 
-Clone this repositoriy 
-
-```
-$ git clone --recurse-submodules <url> 
-```  
-
-Create a build directory
-
-```
-$ mkdir build 
-```
-
-Run cmake and create the binaries
-```
-$ cd build
-$ cmake ..
-$ make
-```
 
 
 ## Validator
