@@ -20,10 +20,30 @@ This repository contains an experimental Grbl simulator that compiles the main G
  On Linux, hook it to a fake serial port (/dev/ttyGRBL) and use it to test your Grbl interface software:
 
  ``` 
- socat PTY,raw,link=/dev/ttyFAKE,echo=0 "EXEC:'./grbl_sim.exe -n -s step.out -b block.out',pty,raw,echo=0" 
+ socat PTY,raw,link=/dev/ttyGRBL,echo=0 "EXEC:'./grbl_sim.exe -n -s step.out -b block.out',pty,raw,echo=0" 
  ```
 
- 
+ After this command, the simulator is running and has a serial connection to ```/dev/ttyGRBL```. 
+
+ With [Minicom](https://wiki.emacinc.com/wiki/Getting_Started_With_Minicom) you can read and write to the serial connection. Let's take a closer look.
+
+First start minicom with 
+```
+$ minicom -s
+```
+in your terminal. Then you will see a configuration window and select the serial port setup.
+
+ ![Minicom Menu](doc/readme/images/minicom_menu.png)
+
+In the setup press the A key and change the serial device to GRBL.
+
+ ![Minicom Serial](doc/readme/images/minicom_serial.png)
+
+ Now exit the setup and configuration and you will see the connection to our grbl simulator. Press ```$ + Return``` for your first help command.
+
+ ![Minicom Connected](doc/readme/images/minicom_connected.png)
+
+
 ### Realtime modifications:
 
   Now simulates microcontroller peripherals in separate thread.  Runs in *aproximate* realtime.  Emphasis on  * **Approximate** *.  Work is underway to speed it up.
