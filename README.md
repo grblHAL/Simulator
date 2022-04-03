@@ -34,7 +34,7 @@ $ make
  On Linux, hook it to a fake serial port (/dev/ttyGRBL) and use it to test your Grbl interface software:
 
  ``` 
- socat PTY,raw,link=/dev/ttyGRBL,echo=0 "EXEC:'./grbl_sim.exe -n -s step.out -b block.out',pty,raw,echo=0" 
+ socat PTY,raw,link=/dev/ttyGRBL,echo=0,group-late=dialout,mode=660 "EXEC:'./grblHAL_sim -n -s step.out -b block.out',pty,raw,echo=0" 
  ```
 
  After this command, the simulator is running and has a serial connection to ```/dev/ttyGRBL```. 
