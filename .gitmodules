@@ -1,0 +1,3 @@
+[submodule "src/grbl"]
+	path = src/grbl
+	url = https://github.com/grblHAL/core
