@@ -18,7 +18,7 @@ $ git clone --recurse-submodules <url>
 Create a build directory
 
 ```
-$ cd grblHAL-sim
+$ cd Simulator
 $ mkdir build 
 ```
 
@@ -28,7 +28,6 @@ $ cd build
 $ cmake ..
 $ make
 ```
-
 
  ## Debugging on LINUX
  On Linux, hook it to a fake serial port (/dev/ttyGRBL) and use it to test your Grbl interface software:
