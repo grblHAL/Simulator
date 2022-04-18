@@ -223,13 +223,7 @@ bool driver_init ()
     hal.signals_cap.safety_door_ajar = On;
 
     hal.driver_cap.amass_level = 3;
-    hal.driver_cap.spindle_dir = On;
 
-    hal.driver_cap.variable_spindle = On;
-    hal.driver_cap.spindle_dir = On;
-
-    hal.driver_cap.variable_spindle = On;
-    hal.driver_cap.spindle_pwm_invert = On;
     hal.driver_cap.spindle_pwm_linearization = On;
     hal.driver_cap.mist_control = On;
 

@@ -31,5 +31,12 @@ build
 # Operating System Files
 # =========================
 
-.vscode/settings.json
-.vscode/c_cpp_properties.json
+.vscode
+
+# make output
+*.o
+*.exe
+
+# run output
+*.out
+*.DAT

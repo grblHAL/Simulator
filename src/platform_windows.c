@@ -1,5 +1,5 @@
 /*
-  platform_WINDOWS.c - Windows specific functions with generic cross-platform interface
+  platform_windows.c - Windows specific functions with generic cross-platform interface
 
   Part of Grbl Simulator
 
