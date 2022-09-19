@@ -457,7 +457,7 @@ bool driver_init ()
  //   hal.driver_cap.axis_ganged_x = On;
 #endif
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
-    return hal.version == 9;
+    return hal.version == 10;
 }
 
 // Main stepper driver

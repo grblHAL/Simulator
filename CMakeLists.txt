@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(grblHAL-sim C)
 
-
-
-
 add_compile_definitions(F_CPU=16000000)
-
 
 set(grbl_SRC 
     src/grbl/grbllib.h
@@ -28,8 +24,8 @@ set(grbl_SRC
     src/grbl/spindle_control.c
     src/grbl/motion_control.h
     src/grbl/motion_control.c
-    src/grbl/limits.h
-    src/grbl/limits.c
+    src/grbl/machine_limits.h
+    src/grbl/machine_limits.c
     src/grbl/coolant_control.h
     src/grbl/coolant_control.c
     src/grbl/system.h
@@ -87,7 +83,6 @@ if(UNIX)
     )
 endif(UNIX)
 
-
 add_executable(grblHAL_sim 
     src/main.c 
     src/simulator.h
@@ -113,7 +108,6 @@ target_link_libraries(grblHAL_sim PRIVATE
     m
     ${platform_LIB}
 )
-
 
 add_executable(grblHAL_validator 
     src/validator.c 

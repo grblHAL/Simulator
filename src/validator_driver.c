@@ -232,5 +232,5 @@ bool driver_init ()
     hal.driver_cap.probe_pull_up = On;
 
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
-    return hal.version == 9;
+    return hal.version == 10;
 }
