@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -368,7 +368,7 @@ bool driver_setup (settings_t *settings)
     hal.spindle.set_state((spindle_state_t){0}, 0.0f);
     hal.coolant.set_state((coolant_state_t){0});
 
-    return settings->version == 21;
+    return settings->version == 22;
 }
 
 // used to inject a sleep in grbl main loop, 
@@ -388,7 +388,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "211121";
+    hal.driver_version = "230125";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
