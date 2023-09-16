@@ -5,6 +5,7 @@ add_compile_definitions(F_CPU=16000000)
 
 set(grbl_SRC 
     src/grbl/grbllib.h
+    src/grbl/crossbar.c
     src/grbl/grbllib.c
     src/grbl/protocol.h
     src/grbl/protocol.c
@@ -18,6 +19,7 @@ set(grbl_SRC
     src/grbl/stepper.c
     src/grbl/gcode.h
     src/grbl/gcode.c
+    src/grbl/messages.c
     src/grbl/stream.h
     src/grbl/stream.c
     src/grbl/spindle_control.h
@@ -77,10 +79,16 @@ if(UNIX)
         src/platform_linux.c
     )
 
-    set(platform_LIB
-        rt
-        pthread
-    )
+    if(APPLE)
+        set(platform_LIB
+            pthread
+        )
+    else(APPLE)
+        set(platform_LIB
+            rt
+            pthread
+        )
+    endif(APPLE)
 endif(UNIX)
 
 add_executable(grblHAL_sim 

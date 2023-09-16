@@ -196,7 +196,7 @@ static limit_signals_t limitsGetHomeState()
 
 #endif
 
-static void limitsEnable (bool on, bool homing)
+static void limitsEnable (bool on, axes_signals_t homing_cycle)
 {
     gpio[LIMITS_PORT0].irq_mask.mask = on ? AXES_BITMASK : 0;
     gpio[LIMITS_PORT0].irq_state.mask = 0;
@@ -205,7 +205,7 @@ static void limitsEnable (bool on, bool homing)
     gpio[LIMITS_PORT1].irq_mask.mask = on ? AXES_BITMASK : 0;
     gpio[LIMITS_PORT1].irq_state.mask = 0;
 
-    hal.limits.get_state = homing ? limitsGetHomeState : limitsGetState;
+    hal.limits.get_state = homing_cycle.mask != 0 ? limitsGetHomeState : limitsGetState;
   #endif
 }
 
@@ -325,7 +325,7 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
     return prev;
 }
 
-void settings_changed (settings_t *settings)
+void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
 
 }
@@ -363,9 +363,13 @@ bool driver_setup (settings_t *settings)
 
     mcu_gpio_in(&gpio[PROBE_PORT], PROBE_CONNECTED_BIT, PROBE_CONNECTED_BIT); // default to connected
 
-    hal.settings_changed(settings);
+    settings_changed_flags_t changed_flags = {0};
+    hal.settings_changed(settings, changed_flags);
     hal.stepper.go_idle(true);
-    hal.spindle.set_state((spindle_state_t){0}, 0.0f);
+    spindle_ptrs_t* spindle_ptrs;
+    if((spindle_ptrs = spindle_get(0))) {
+        spindle_ptrs->set_state((spindle_state_t){0}, 0.0f);
+    }
     hal.coolant.set_state((coolant_state_t){0});
 
     return settings->version == 22;
@@ -388,7 +392,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "230125";
+    hal.driver_version = "230828";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -415,14 +419,18 @@ bool driver_init ()
     hal.probe.get_state = probeGetState;
     hal.probe.configure = probeConfigureInvertMask;
 
-    hal.spindle.set_state = spindleSetState;
-    hal.spindle.get_state = spindleGetState;
+    spindle_ptrs_t spindle_ptrs;
+
+    spindle_ptrs.set_state = spindleSetState;
+    spindle_ptrs.get_state = spindleGetState;
 #ifdef SPINDLE_PWM_DIRECT
-    hal.spindle.get_pwm = spindleGetPWM;
-    hal.spindle.update_pwm = spindle_set_speed;
+    spindle_ptrs.update_pwm = spindle_set_speed;
+    spindle_ptrs.get_pwm = spindleGetPWM;
 #else
-    hal.spindle.update_rpm = spindleUpdateRPM;
-#endif
+    spindle_ptrs.update_rpm = spindleUpdateRPM;
+#endif    
+    spindle_register(&spindle_ptrs, "simulated_spindle");
+    // spindle_enable(0);
 
     hal.control.get_state = systemGetState;
 /*
@@ -440,21 +448,21 @@ bool driver_init ()
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
 
-  // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
+    // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
 
     hal.driver_cap.amass_level = 3;
 
-    hal.driver_cap.spindle_pwm_linearization = On;
     hal.driver_cap.mist_control = On;
-//    hal.driver_cap.software_debounce = On;
-//    hal.driver_cap.step_pulse_delay = On;
+    // hal.driver_cap.software_debounce = On;
+    // This is required for the hal to initialize properly!
+    hal.driver_cap.step_pulse_delay = On;
 
     hal.signals_cap.safety_door_ajar = On;
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 #ifdef SQUARING_ENABLED
- //   hal.driver_cap.axis_ganged_x = On;
+    // hal.driver_cap.axis_ganged_x = On;
 #endif
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
     return hal.version == 10;
