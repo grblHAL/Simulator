@@ -46,6 +46,7 @@ arg_vars_t args;
 const char* progname;
 uint8_t exit_code = 0;
 
+
 int usage (const char* badarg)
 {
     if (badarg)
@@ -66,7 +67,7 @@ int usage (const char* badarg)
 
 status_code_t validator_report_status_message (status_code_t status_code)
 {
-    report_status_message(status_code);
+    //report_status_message(status_code);
 
     if (status_code && !exit_code) {
         printf("EXITING %d\n",status_code);
@@ -189,8 +190,8 @@ int main(int argc, char *argv[])
     settings_init();
 
     report_init_fns();
-    grbl.report.status_message = validator_report_status_message;
-    grbl.report.feedback_message = report_feedback_message;
+    //grbl.report.status_message = validator_report_status_message;
+    //grbl.report.feedback_message = report_feedback_message;
 
     hal.stream.read = serial_read;
     hal.stream.write = serial_write;

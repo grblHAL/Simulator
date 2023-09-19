@@ -201,13 +201,13 @@ bool driver_init ()
     hal.probe.get_state = probeGetState;
     hal.probe.configure = probeConfigureInvertMask;
 
-    hal.spindle.set_state = spindleSetState;
-    hal.spindle.get_state = spindleGetState;
+    //hal.spindle.set_state = spindleSetState;
+    //hal.spindle.get_state = spindleGetState;
 #ifdef SPINDLE_PWM_DIRECT
-    hal.spindle.get_pwm = spindleGetPWM;
-    hal.spindle.update_pwm = spindle_set_speed;
+    //hal.spindle.get_pwm = spindleGetPWM;
+    //hal.spindle.update_pwm = spindle_set_speed;
 #else
-    hal.spindle.update_rpm = spindleUpdateRPM;
+    //hal.spindle.update_rpm = spindleUpdateRPM;
 #endif
 
     hal.control.get_state = systemGetState;
@@ -224,7 +224,7 @@ bool driver_init ()
 
     hal.driver_cap.amass_level = 3;
 
-    hal.driver_cap.spindle_pwm_linearization = On;
+    //hal.driver_cap.spindle_pwm_linearization = On;
     hal.driver_cap.mist_control = On;
 
     hal.driver_cap.control_pull_up = On;
