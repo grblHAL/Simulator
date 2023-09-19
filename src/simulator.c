@@ -152,10 +152,17 @@ void sim_socket_out (uint8_t data)
     if(data == '\n' || data == '\r' || len >= 127) {
 //        if (args.comment_char && !continuation)
 //            fprintf(args.serial_out_file, "%c ", args.comment_char);
+#ifdef WIN32
+        if(sim.socket_fd != INVALID_SOCKET) {
+            if(send(sim.socket_fd, buf, len, 0) == SOCKET_ERROR)
+                exit(-10);
+        }
+#else
         if(sim.socket_fd) {
             if(write(sim.socket_fd, buf, len) < 0)
                 exit(-10);
         }
+#endif
         // don't print comment on next line if we are just printing to avoid buffer overflow
         continuation = (len >= 128); 
         len = 0;

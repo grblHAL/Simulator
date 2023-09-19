@@ -28,24 +28,26 @@
 #include <errno.h>
 
 #include "platform.h"
+#include "eeprom.h"
+#include "grbl_eeprom_extensions.h"
 #include "grbl/hal.h"
 #include "grbl/report.h"
 #include "grbl/protocol.h"
 #include "grbl/protocol.h"
 #include "grbl/nvs_buffer.h"
+#include "grbl/state_machine.h"
 
 typedef struct arg_vars {
     // Output file handles
     FILE *input_file;
     FILE *output_file;
     uint8_t echo;
-    uint8_t silent;   
+    uint8_t silent;
 } arg_vars_t;
 
 arg_vars_t args;
 const char* progname;
 uint8_t exit_code = 0;
-
 
 int usage (const char* badarg)
 {
@@ -67,10 +69,8 @@ int usage (const char* badarg)
 
 status_code_t validator_report_status_message (status_code_t status_code)
 {
-    //report_status_message(status_code);
-
     if (status_code && !exit_code) {
-        printf("EXITING %d\n",status_code);
+        printf("EXITING: error %d, %s\n", status_code, errors_get_description(status_code));
         exit_code = status_code;
         sys.abort = 1;
     }
@@ -118,6 +118,8 @@ int main(int argc, char *argv[])
     args.output_file = stdout;
     args.echo = 0;
     args.silent = 0;
+
+    set_eeprom_name("EEPROM.DAT");
 
     progname = argv[0];
 
@@ -172,6 +174,7 @@ int main(int argc, char *argv[])
     memset(&grbl, 0, sizeof(grbl_t));
     grbl.on_execute_realtime = protocol_execute_noop;
     grbl.enqueue_gcode = protocol_enqueue_gcode;
+    grbl.on_get_errors = errors_get_details;
 
     // Clear all and set some HAL function pointers
     memset(&hal, 0, sizeof(grbl_hal_t));
@@ -181,22 +184,34 @@ int main(int argc, char *argv[])
     hal.irq_disable = dummy_handler;
     hal.nvs.size = GRBL_NVS_SIZE;
 
+    hal.nvs.type = NVS_EEPROM;
+    hal.nvs.get_byte = eeprom_get_char;
+    hal.nvs.put_byte = eeprom_put_char;
+    hal.nvs.memcpy_to_nvs = memcpy_to_eeprom;
+    hal.nvs.memcpy_from_nvs = memcpy_from_eeprom;
+
     if(!driver_init())
        return -1;
 
-    // TODO: read settings from EEPROM.dat if exists?
+    memset(&sys, 0, sizeof(system_t));
+    sys.cold_start = true;
 
+    // TODO: read settings from EEPROM.dat if exists?
+    nvs_buffer_alloc();
     nvs_buffer_init();
     settings_init();
 
     report_init_fns();
-    //grbl.report.status_message = validator_report_status_message;
-    //grbl.report.feedback_message = report_feedback_message;
+    grbl.report.status_message = validator_report_status_message;
+ //   grbl.report.feedback_message = report_feedback_message;
 
     hal.stream.read = serial_read;
     hal.stream.write = serial_write;
     hal.stream.write_all = serial_write;
 
+// state_set(STATE_CHECK_MODE);
+        
+    gc_init();
     protocol_main_loop();
 
     return exit_code;

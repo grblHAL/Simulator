@@ -1,0 +1,35 @@
+{
+  "caps":
+  {
+    "axes": 4,
+    "usb_cdc": 0,
+    "uart": 1,
+    "serial_ports": 1,
+    "eeprom": 1,
+    "ganged_axes": 1,
+    "auto_square": 1,
+    "probe": 1,
+    "safety_door": 1,
+    "estop": 1
+  },
+  "symbols": {
+  },
+  "boards": [
+    {
+      "name": "Linux",
+      "symbol": "LINUX",
+      "URL": "",
+      "caps": {
+        "axes": 3
+      }
+    },
+    {
+      "name": "Windows",
+      "symbol": "WIN64",
+      "URL": "",
+      "caps": {
+        "axes": 3
+      }
+    }
+  ]
+}

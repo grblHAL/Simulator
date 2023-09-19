@@ -5,25 +5,29 @@ add_compile_definitions(F_CPU=16000000)
 add_compile_definitions(INJECT_BLOCK_BUFFER_SIZE=256)
 #add_compile_definitions(SQUARING_ENABLED=1)
 
-include(src/grbl/CMakeLists.txt)
+%build_flags%
+
+include(../src/grbl/CMakeLists.txt)
 
 if (WIN32)
     add_compile_definitions(PLATFORM_WINDOWS)
 
     set(platform_SRC
-        src/platform_windows.h
-        src/platform_windows.c
+        ../src/platform_windows.h
+        ../src/platform_windows.c
     )
 
-    set(platform_LIB)
+    set(platform_LIB
+        ws2_32
+    )
 endif(WIN32)
 
 if(UNIX)
     add_compile_definitions(PLATFORM_LINUX)
 
     set(platform_SRC
-        src/platform_linux.h
-        src/platform_linux.c
+        ../src/platform_linux.h
+        ../src/platform_linux.c
     )
 
     if(APPLE)
@@ -39,15 +43,15 @@ if(UNIX)
 endif(UNIX)
 
 add_executable(grblHAL_sim 
-    src/main.c 
-    src/simulator.c
-    src/driver.c
-    src/eeprom.c
-    src/grbl_eeprom_extensions.c
-    src/mcu.c
-    src/serial.c
-    src/grbl_interface.c
-    src/planner_inject_accessors.c
+    ../src/main.c 
+    ../src/simulator.c
+    ../src/driver.c
+    ../src/eeprom.c
+    ../src/grbl_eeprom_extensions.c
+    ../src/mcu.c
+    ../src/serial.c
+    ../src/grbl_interface.c
+    ../src/planner_inject_accessors.c
     ${platform_SRC}
 )
 
@@ -58,10 +62,10 @@ target_link_libraries(grblHAL_sim PRIVATE
 )
 
 add_executable(grblHAL_validator 
-    src/eeprom.c
-    src/grbl_eeprom_extensions.c
-    src/validator.c 
-    src/validator_driver.c 
+    ../src/eeprom.c
+    ../src/grbl_eeprom_extensions.c
+    ../src/validator.c 
+    ../src/validator_driver.c 
     ${platform_SRC}
 )
 

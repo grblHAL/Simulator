@@ -29,6 +29,8 @@
 
 #include "grbl/hal.h"
 
+spindle_id_t spindle_id;
+
 /* don't delay at all in validator */
 static void driver_delay_ms (uint32_t ms, void (*callback)(void))
 {
@@ -58,7 +60,7 @@ static void stepperPulseStart (stepper_t *stepper)
 {
 }
 
-static void limitsEnable (bool on, bool homing)
+static void limitsEnable (bool on, axes_signals_t homing_cycle)
 {
 }
 
@@ -95,33 +97,6 @@ probe_state_t probeGetState (void)
 
     return state;
 }
-
-// Start or stop spindle
-static void spindleSetState (spindle_state_t state, float rpm)
-{
-}
-
-// Variable spindle control functions
-
-// Sets spindle speed
-static void spindle_set_speed (uint_fast16_t pwm_value)
-{
-}
-
-#ifdef SPINDLE_PWM_DIRECT
-
-static uint_fast16_t spindleGetPWM (float rpm)
-{
-    return 0; //spindle_compute_pwm_value(&spindle_pwm, rpm, false);
-}
-
-#else
-
-static void spindleUpdateRPM (float rpm)
-{
-}
-
-#endif
 
 // Returns spindle state in a spindle_state_t variable
 static spindle_state_t spindleGetState (void)
@@ -161,8 +136,9 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
     return prev;
 }
 
-void settings_changed (settings_t *settings)
+void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
+    spindle_select(spindle_id);
 }
 
 bool driver_setup (settings_t *settings)
@@ -201,15 +177,6 @@ bool driver_init ()
     hal.probe.get_state = probeGetState;
     hal.probe.configure = probeConfigureInvertMask;
 
-    //hal.spindle.set_state = spindleSetState;
-    //hal.spindle.get_state = spindleGetState;
-#ifdef SPINDLE_PWM_DIRECT
-    //hal.spindle.get_pwm = spindleGetPWM;
-    //hal.spindle.update_pwm = spindle_set_speed;
-#else
-    //hal.spindle.update_rpm = spindleUpdateRPM;
-#endif
-
     hal.control.get_state = systemGetState;
 
     hal.nvs.type = NVS_None;
@@ -230,6 +197,8 @@ bool driver_init ()
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
+
+    spindle_id = spindle_add_null();
 
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
     return hal.version == 10;

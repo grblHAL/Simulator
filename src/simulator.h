@@ -38,7 +38,11 @@ typedef struct sim_vars {
     enum {exit_NO, exit_REQ, exit_OK} exit;
     float speedup;
     int32_t baud_ticks;
+#ifdef WIN32
+    SOCKET socket_fd;
+#else
     int socket_fd;
+#endif
     uint8_t (*getchar)(void);
     void (*putchar)(uint8_t);
     sim_hook_fp on_init;
@@ -54,7 +58,6 @@ typedef struct arg_vars {
     FILE *block_out_file;
     FILE *step_out_file;
     FILE *serial_out_file;
-    char eeprom_file[128];
     double step_time;       // Minimum time step for printing stepper values. Given by user via command line
     uint8_t comment_char;   // Char to prefix comments; default  '#' 
     uint16_t port;          // Port number for telnet communication

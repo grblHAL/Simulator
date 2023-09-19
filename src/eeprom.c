@@ -25,16 +25,24 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdbool.h>
 
 #include "simulator.h"
 
 #define MAX_EEPROM_SIZE 4096   // 4KB EEPROM
 
+static char eeprom_file[128];
+
+void set_eeprom_name (char *name)
+{
+    strcpy(eeprom_file, name);
+}
+
 static FILE *eeprom_create_empty_file (void)
 {
     int i;
-    FILE* fp = fopen(args.eeprom_file, "w+b");
+    FILE* fp = fopen(eeprom_file, "w+b");
 
     if (fp) {
         for(i = 0; i < MAX_EEPROM_SIZE; i++)
@@ -53,7 +61,7 @@ static FILE *eeprom_fp (void)
 
     if (!EEPROM_FP && !tried) {
         tried = 1;
-        EEPROM_FP = fopen(args.eeprom_file, "r+b");
+        EEPROM_FP = fopen(eeprom_file, "r+b");
         if (!EEPROM_FP) {
             EEPROM_FP = eeprom_create_empty_file();
         }

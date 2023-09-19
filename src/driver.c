@@ -30,6 +30,11 @@
 
 #include "grbl/hal.h"
 
+#ifndef SQUARING_ENABLED
+#define SQUARING_ENABLED 0
+#endif
+
+static spindle_id_t spindle_id;
 static bool probe_invert;
 static delay_t delay = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 
@@ -38,11 +43,8 @@ void Stepper_IRQHandler (void);
 void Limits0_IRQHandler (void);
 void Control_IRQHandler (void);
 
-#define SQUARING_ENABLED
-
-#ifdef SQUARING_ENABLED
+#if SQUARING_ENABLED
 static axes_signals_t motors_0 = {AXES_BITMASK}, motors_1 = {AXES_BITMASK};
-
 void Limits1_IRQHandler (void);
 #endif
 
@@ -56,6 +58,8 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
         callback();
 }
 
+#if SQUARING_ENABLED
+
 inline static void set_step_outputs (axes_signals_t step_outbits_0)
 {
     axes_signals_t step_outbits_1;
@@ -66,6 +70,30 @@ inline static void set_step_outputs (axes_signals_t step_outbits_0)
     mcu_gpio_set(&gpio[STEP_PORT0], step_outbits_0.mask, AXES_BITMASK);
     mcu_gpio_set(&gpio[STEP_PORT1], step_outbits_1.mask, AXES_BITMASK);
 }
+
+static axes_signals_t getGangedAxes (bool auto_squared)
+{
+    axes_signals_t ganged = {0};
+
+    if(auto_squared) {
+        ganged.x = On;
+    } else {
+        ganged.x = On;
+    }
+
+    return ganged;
+}
+
+#else
+
+inline static void set_step_outputs (axes_signals_t step_outbits)
+{
+    step_outbits.mask = (step_outbits.mask) ^ settings.steppers.step_invert.mask;
+
+    mcu_gpio_set(&gpio[STEP_PORT0], step_outbits.mask, AXES_BITMASK);
+}
+
+#endif
 
 inline static void set_dir_outputs (axes_signals_t dir_outbits)
 {
@@ -155,7 +183,7 @@ static limit_signals_t limitsGetState()
     return signals;
 }
 
-#ifdef SQUARING_ENABLED
+#if SQUARING_ENABLED
 
 // Enable/disable motors for auto squaring of ganged axes
 static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
@@ -201,7 +229,7 @@ static void limitsEnable (bool on, axes_signals_t homing_cycle)
     gpio[LIMITS_PORT0].irq_mask.mask = on ? AXES_BITMASK : 0;
     gpio[LIMITS_PORT0].irq_state.mask = 0;
 
-  #ifdef SQUARING_ENABLED
+  #if SQUARING_ENABLED
     gpio[LIMITS_PORT1].irq_mask.mask = on ? AXES_BITMASK : 0;
     gpio[LIMITS_PORT1].irq_state.mask = 0;
 
@@ -254,20 +282,10 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
 {
 }
 
-#ifdef SPINDLE_PWM_DIRECT
-
 static uint_fast16_t spindleGetPWM (float rpm)
 {
     return 0; //spindle_compute_pwm_value(&spindle_pwm, rpm, false);
 }
-
-#else
-
-static void spindleUpdateRPM (float rpm)
-{
-}
-
-#endif
 
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_state_t state, float rpm)
@@ -283,6 +301,16 @@ static spindle_state_t spindleGetState (void)
     state.value = gpio[SPINDLE_PORT].state.value ^ settings.spindle.invert.mask;
 
     return state;
+}
+
+static bool spindleConfig (spindle_ptrs_t *spindle)
+{
+    if(spindle == NULL)
+        return false;
+
+//    spindle_update_caps(spindle, spindle->cap.variable ? &spindle_pwm : NULL);
+
+    return true;
 }
 
 static void coolantSetState (coolant_state_t mode)
@@ -327,7 +355,15 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
 
 void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
-
+    if(changed.spindle) {
+        spindleConfig(spindle_get_hal(spindle_id, SpindleHAL_Configured));
+        if(spindle_id == spindle_get_default())
+            spindle_select(spindle_id);
+    }
+    
+#if SQUARING_ENABLED
+        hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
+#endif
 }
 
 bool driver_setup (settings_t *settings)
@@ -347,13 +383,12 @@ bool driver_setup (settings_t *settings)
     gpio[LIMITS_PORT0].rising.mask = AXES_BITMASK;
     mcu_register_irq_handler(Limits0_IRQHandler, LIMITS_IRQ0);
 
-#ifdef SQUARING_ENABLED
+#if SQUARING_ENABLED
     gpio[STEP_PORT1].dir.mask = AXES_BITMASK;
 
     gpio[LIMITS_PORT1].dir.mask = AXES_BITMASK;
     gpio[LIMITS_PORT1].rising.mask = AXES_BITMASK;
     mcu_register_irq_handler(Limits1_IRQHandler, LIMITS_IRQ1);
-
 #endif
 
     gpio[CONTROL_PORT].dir.mask = CONTROL_MASK;
@@ -392,7 +427,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "230828";
+    hal.driver_version = "230918";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -406,7 +441,8 @@ bool driver_init ()
     hal.stepper.enable = stepperEnable;
     hal.stepper.cycles_per_tick = stepperCyclesPerTick;
     hal.stepper.pulse_start = stepperPulseStart;
-#ifdef SQUARING_ENABLED
+#if SQUARING_ENABLED
+    hal.stepper.get_ganged = getGangedAxes;
     hal.stepper.disable_motors = StepperDisableMotors;
 #endif
 
@@ -419,18 +455,19 @@ bool driver_init ()
     hal.probe.get_state = probeGetState;
     hal.probe.configure = probeConfigureInvertMask;
 
-    spindle_ptrs_t spindle_ptrs;
-
-    spindle_ptrs.set_state = spindleSetState;
-    spindle_ptrs.get_state = spindleGetState;
-#ifdef SPINDLE_PWM_DIRECT
-    spindle_ptrs.update_pwm = spindle_set_speed;
-    spindle_ptrs.get_pwm = spindleGetPWM;
-#else
-    spindle_ptrs.update_rpm = spindleUpdateRPM;
-#endif    
-    spindle_register(&spindle_ptrs, "simulated_spindle");
-    // spindle_enable(0);
+    static const spindle_ptrs_t spindle = {
+        .type = SpindleType_PWM,
+        .cap.variable = On,
+        .cap.laser = On,
+        .cap.direction = On,
+        .config = spindleConfig,
+        .get_pwm = spindleGetPWM,
+        .update_pwm = spindle_set_speed,
+        .set_state = spindleSetState,
+        .get_state = spindleGetState
+    };
+  
+    spindle_register(&spindle, "simulated PWM spindle");
 
     hal.control.get_state = systemGetState;
 /*
@@ -461,9 +498,7 @@ bool driver_init ()
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
-#ifdef SQUARING_ENABLED
-    // hal.driver_cap.axis_ganged_x = On;
-#endif
+
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
     return hal.version == 10;
 }
@@ -486,7 +521,7 @@ void Limits0_IRQHandler (void)
     hal.limits.interrupt_callback(hal.limits.get_state());
 }
 
-#ifdef SQUARING_ENABLED
+#if SQUARING_ENABLED
 
 void Limits1_IRQHandler (void)
 {
