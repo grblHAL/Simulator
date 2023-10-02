@@ -82,11 +82,11 @@ Use the `-p <port>` command line argument to start a raw telnet server for commu
 ## Maintainers
 - Created by Jens Geisler, Adam Shelly
 
-- Modified by Terje Io for grblHAL. Original implementation for grblHAL can be found [here](https://github.com/grblHAL/grblHAL-sim).
+- Modified by Terje Io for grblHAL. Original implementation for Grbl can be found [here](https://github.com/grbl/grbl-sim).
 
 This repository contains an experimental grblHAL simulator that compiles the main grblHAL source code into a wrapped executable for use on a computer. No microcontroller required. When the executable is run, the user should be able to interact with the grblHAL simulator as if connected to a microcontroller board with grblHAL.
 
 *WARNING: grblHAL Sim is under heavy development.* So many things may not work, or respond in ways unexpected. At the moment, this code is a proof-of-concept.
 
 ---
-2023-09-20
+2023-09-27
