@@ -401,9 +401,9 @@ bool driver_setup (settings_t *settings)
     settings_changed_flags_t changed_flags = {0};
     hal.settings_changed(settings, changed_flags);
     hal.stepper.go_idle(true);
-    spindle_ptrs_t* spindle_ptrs;
-    if((spindle_ptrs = spindle_get(0))) {
-        spindle_ptrs->set_state((spindle_state_t){0}, 0.0f);
+    spindle_ptrs_t* spindle;
+    if((spindle = spindle_get(0))) {
+        spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
     }
     hal.coolant.set_state((coolant_state_t){0});
 
