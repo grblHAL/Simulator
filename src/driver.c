@@ -270,7 +270,7 @@ probe_state_t probeGetState (void)
 }
 
 // Start or stop spindle
-static void spindleSetState (spindle_state_t state, float rpm)
+static void spindleSetState (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
     mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.spindle.invert.mask, SPINDLE_MASK);
 }
@@ -278,23 +278,23 @@ static void spindleSetState (spindle_state_t state, float rpm)
 // Variable spindle control functions
 
 // Sets spindle speed
-static void spindle_set_speed (uint_fast16_t pwm_value)
+static void spindle_set_speed (spindle_ptrs_t *spindle, uint_fast16_t pwm_value)
 {
 }
 
-static uint_fast16_t spindleGetPWM (float rpm)
+static uint_fast16_t spindleGetPWM (spindle_ptrs_t *spindle, float rpm)
 {
     return 0; //spindle_compute_pwm_value(&spindle_pwm, rpm, false);
 }
 
 // Start or stop spindle
-static void spindleSetStateVariable (spindle_state_t state, float rpm)
+static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 { 
     mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.spindle.invert.mask, SPINDLE_MASK);
 }
 
 // Returns spindle state in a spindle_state_t variable
-static spindle_state_t spindleGetState (void)
+static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 {
     spindle_state_t state = {0};
 
@@ -427,7 +427,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "230918";
+    hal.driver_version = "231218";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
