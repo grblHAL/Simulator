@@ -10,7 +10,9 @@
     "auto_square": 1,
     "probe": 1,
     "safety_door": 1,
-    "estop": 1
+    "estop": 1,
+    "plugins": [
+    ]
   },
   "symbols": {
   },
