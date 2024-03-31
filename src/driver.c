@@ -3,20 +3,20 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <string.h>
@@ -362,7 +362,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
     }
     
 #if SQUARING_ENABLED
-        hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
+    hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
 }
 
@@ -427,7 +427,7 @@ bool driver_init ()
     systick_timer.irq_enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "231218";
+    hal.driver_version = "240330";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -485,11 +485,9 @@ bool driver_init ()
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
 
-    // driver capabilities, used for announcing and negotiating (with Grbl) driver functionality
-
     hal.driver_cap.amass_level = 3;
-
-    hal.driver_cap.mist_control = On;
+    hal.coolant_cap.flood = On;
+    hal.coolant_cap.mist = On;
     // hal.driver_cap.software_debounce = On;
     // This is required for the hal to initialize properly!
     hal.driver_cap.step_pulse_delay = On;
