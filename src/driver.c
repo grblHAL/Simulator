@@ -36,7 +36,9 @@
 
 static spindle_id_t spindle_id;
 static bool probe_invert;
+static uint32_t ticks = 0;
 static delay_t delay = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
+static on_execute_realtime_ptr on_execute_realtime;
 
 void SysTick_Handler (void);
 void Stepper_IRQHandler (void);
@@ -360,7 +362,7 @@ void settings_changed (settings_t *settings, settings_changed_flags_t changed)
         if(spindle_id == spindle_get_default())
             spindle_select(spindle_id);
     }
-    
+
 #if SQUARING_ENABLED
     hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
@@ -402,9 +404,11 @@ bool driver_setup (settings_t *settings)
     hal.settings_changed(settings, changed_flags);
     hal.stepper.go_idle(true);
     spindle_ptrs_t* spindle;
+
     if((spindle = spindle_get(0))) {
         spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
     }
+
     hal.coolant.set_state((coolant_state_t){0});
 
     return settings->version == 22;
@@ -415,6 +419,12 @@ bool driver_setup (settings_t *settings)
 void sim_process_realtime (uint_fast16_t state)
 {
     platform_sleep(0);
+    on_execute_realtime(state);
+}
+
+uint32_t millis (void)
+{
+    return ticks;
 }
 
 bool driver_init ()
@@ -425,15 +435,17 @@ bool driver_init ()
 
     systick_timer.load = F_CPU / 1000 - 1;
     systick_timer.irq_enable = 1;
+    systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "240330";
+    hal.driver_version = "240414";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
     hal.delay_ms = driver_delay_ms;
     hal.settings_changed = settings_changed;
 
+    on_execute_realtime = grbl.on_execute_realtime;
     grbl.on_execute_realtime = sim_process_realtime;
 
     hal.stepper.wake_up = stepperWakeUp;
@@ -473,8 +485,8 @@ bool driver_init ()
 /*
     hal.show_message = showMessage;
 */
-    memcpy(&hal.stream, serialInit(), sizeof(io_stream_t));
 
+    memcpy(&hal.stream, serialInit(), sizeof(io_stream_t));
     hal.nvs.type = NVS_EEPROM;
     hal.nvs.get_byte = eeprom_get_char;
     hal.nvs.put_byte = eeprom_put_char;
@@ -484,6 +496,7 @@ bool driver_init ()
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
+    hal.get_elapsed_ticks = millis;
 
     hal.driver_cap.amass_level = 3;
     hal.coolant_cap.flood = On;
@@ -532,8 +545,10 @@ void Limits1_IRQHandler (void)
 // Interrupt handler for 1 ms interval timer
 void SysTick_Handler (void)
 {
-    if(!(--delay.ms)) {
-        systick_timer.enable = 0;
+    ticks++;
+
+    if(delay.ms && --delay.ms == 0) {
+//        systick_timer.enable = 0;
         if(delay.callback) {
             delay.callback();
             delay.callback = NULL;
