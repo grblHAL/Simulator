@@ -102,7 +102,7 @@ inline static void set_dir_outputs (axes_signals_t dir_outbits)
     mcu_gpio_set(&gpio[DIR_PORT], dir_outbits.value ^ settings.steppers.dir_invert.mask, AXES_BITMASK);
 }
 
-static void stepperEnable (axes_signals_t enable)
+static void stepperEnable (axes_signals_t enable, bool hold)
 {
     mcu_gpio_set(&gpio[STEPPER_ENABLE_PORT], enable.value ^ settings.steppers.enable_invert.mask, AXES_BITMASK);
 }
@@ -204,7 +204,7 @@ static limit_signals_t limitsGetHomeState()
 		.min2.mask = 0,
 		.max2.mask = 0
 	};
-	
+
     if(motors_0.mask) {
 
         signals.min.mask = gpio[LIMITS_PORT0].state.value;
@@ -291,7 +291,7 @@ static uint_fast16_t spindleGetPWM (spindle_ptrs_t *spindle, float rpm)
 
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
-{ 
+{
     mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.spindle.invert.mask, SPINDLE_MASK);
 }
 
@@ -414,7 +414,7 @@ bool driver_setup (settings_t *settings)
     return settings->version == 22;
 }
 
-// used to inject a sleep in grbl main loop, 
+// used to inject a sleep in grbl main loop,
 // ensures hardware simulator gets some cycles in "parallel"
 void sim_process_realtime (uint_fast16_t state)
 {
@@ -478,7 +478,7 @@ bool driver_init ()
         .set_state = spindleSetState,
         .get_state = spindleGetState
     };
-  
+
     spindle_register(&spindle, "simulated PWM spindle");
 
     hal.control.get_state = systemGetState;

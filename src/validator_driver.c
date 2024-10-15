@@ -40,7 +40,7 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
 
 /* Dummy functions */
 
-static void stepperEnable (axes_signals_t enable)
+static void stepperEnable (axes_signals_t enable, bool hold)
 {
 }
 
