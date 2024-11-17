@@ -134,7 +134,6 @@ const io_stream_t *serialInit (void)
 {
         static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .state.connected = true,
         .read = serialGetC,
         .write = serialWriteS,
         .write_char = serialPutC,
