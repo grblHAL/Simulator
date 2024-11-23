@@ -62,7 +62,7 @@ int usage(const char* badarg)
       "%s [options] [time_step] [block_file]\n"
       "  Options:\n"
       "    -r <report time>   : minimum time step for printing stepper values. Default=0=no print.\n"
-      "    -t <time factor>   : multiplier to realtime clock. Default=1. (needs work)\n"
+      "    -t <time factor>   : multiplier to realtime clock. Default=1.0; 0=\"as fast as possible\"\n"
       "    -g <response file> : file to report responses from grbl.  default = stdout\n"
       "    -b <block file>    : file to report each block executed.  default = stdout\n"
       "    -s <step file>     : file to report each step executed.  default = stderr\n"
@@ -176,7 +176,6 @@ static void exithandler (int signum)
 
 int main(int argc, char *argv[])
 {
-    float tick_rate = 1.0f;
     int positional_args = 0;
 
     //defaults
@@ -184,6 +183,7 @@ int main(int argc, char *argv[])
     args.block_out_file = stdout;
     args.serial_out_file = stdout;
     args.comment_char = '#';
+    args.speedup = 1.0f;
 
     args.step_time = 0.0f;
     // Get the minimum time step for printing stepper values.
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 
                 case 't': //Tick rate
                     argv++; argc--;
-                    tick_rate = atof(*argv);
+                    args.speedup = atof(*argv);
                     break;
 
                 case 'b': //Block file
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
     sim.on_tick = grbl_per_tick;
     sim.on_byte = grbl_per_byte;
 
-    init_simulator(tick_rate);
+    init_simulator();
 
     if(args.port) {
 
