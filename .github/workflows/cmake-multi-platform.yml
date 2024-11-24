@@ -1,0 +1,60 @@
+name: CMake/Build/Test on multiple platforms
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations.
+      # Consider changing this to true when your workflow is stable.
+      fail-fast: false
+
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        c_compiler: [gcc, clang]
+        exclude:
+        - os: windows-latest
+          c_compiler: clang
+        - os: macos-latest
+          c_compiler: gcc
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set reusable strings
+      # Turn repeated input strings (such as the build output directory) into step outputs.
+      # These step outputs can be used throughout the workflow file.
+      id: strings
+      shell: bash
+      run: |
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+    - name: Configure CMake Generator for Windows
+      if: runner.os == 'Windows'
+      run: |
+        echo CMAKE_GENERATOR="MinGW Makefiles" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: CMake
+      run: >
+        cmake
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -B ${{ steps.strings.outputs.build-output-dir }}
+        -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.build-output-dir }}
+
+    - name: Smoke Test
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      shell: bash
+      run: |
+        ./grblHAL_validator -h
+        ./grblHAL_sim -h
