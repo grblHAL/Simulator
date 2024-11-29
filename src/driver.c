@@ -411,7 +411,7 @@ bool driver_setup (settings_t *settings)
 
     hal.coolant.set_state((coolant_state_t){0});
 
-    return settings->version == 22;
+    return settings->version.id == 22;
 }
 
 // used to inject a sleep in grbl main loop,
