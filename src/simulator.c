@@ -110,7 +110,9 @@ void sim_loop (void)
             sim.on_tick();
 
             if (read_serial) {
-                next_byte_tick += sim.baud_ticks;
+                // baud rate is for symbols and UART has 1 bit per symbol.
+                // with a typical 8N1 serial, we need 10 symbols per byte
+                next_byte_tick += sim.baud_ticks * 10;
                 // do app-specific per-byte processing
                 sim.on_byte();
             }
