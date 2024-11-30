@@ -15,7 +15,9 @@ if (WIN32)
         src/platform_windows.c
     )
 
-    set(platform_LIB)
+    set(platform_LIB
+        ws2_32
+    )
 endif(WIN32)
 
 if(UNIX)

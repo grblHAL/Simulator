@@ -49,7 +49,7 @@ arg_vars_t args;
 const char* progname;
 uint8_t exit_code = 0;
 
-int usage (const char* badarg)
+void print_usage (const char* badarg)
 {
     if (badarg)
         printf("Unrecognized option %s\n", badarg);
@@ -60,11 +60,12 @@ int usage (const char* badarg)
      "    -o <output file> : use output file instead of stdout\n"
      "    -e        : echo input to output\n"
      "    -s        : silent, no output only return code \n"
-     "\n  Parses gcode from stdin or input line, prints grbl's expected response"
-     "\n  Returns 0 on successs, or line number of error",
+     "\n"
+     "  Parses gcode from stdin or input line, prints grbl's expected response.\n"
+     "\n"
+     "  Returns 0 on successs, or line number of error.\n"
+     "\n",
      progname);
-
-    return -1;
 }
 
 status_code_t validator_report_status_message (status_code_t status_code)
@@ -142,14 +143,17 @@ int main(int argc, char *argv[])
                     if (!args.output_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     break;
 
                 case 'h':
-                    return usage(NULL);
+                    print_usage(NULL);
+                    return EXIT_SUCCESS;
+
                 default:
-                    return usage(*argv);
+                    print_usage(*argv);
+                    return EXIT_FAILURE;
             }
         } else { //handle positional arguments
             positional_args++;
@@ -160,12 +164,13 @@ int main(int argc, char *argv[])
                     if (!args.input_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     break;
 
                 default:
-                    return usage(*argv);
+                    print_usage(*argv);
+                    return EXIT_FAILURE;
             }
         }
     }

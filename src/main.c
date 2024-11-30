@@ -53,7 +53,7 @@ static int socket_fd = 0;
 #endif
 static fd_set rfds;
 
-int usage(const char* badarg)
+void print_usage(const char* badarg)
 {
     if (badarg)
         printf("Unrecognized option %s\n",badarg);
@@ -71,11 +71,12 @@ int usage(const char* badarg)
       "    -c<comment_char>   : character to print before each line from grbl.  default = '#'\n"
       "    -n                 : no comments before grbl response lines.\n"
       "    -h                 : this help.\n"
-      "\n  <time_step> and <block_file> can be specifed with option flags or positional parameters\n"
-      "\n  ^-F to shutdown cleanly\n\n",
+      "\n"
+      "  <time_step> and <block_file> can be specifed with option flags or positional parameters\n"
+      "\n"
+      "  ^-F to shutdown cleanly\n"
+      "\n",
       progname);
-
-    return -1;
 }
 
 //wrapper for thread interface
@@ -219,7 +220,7 @@ int main(int argc, char *argv[])
                     if (!args.block_out_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     break;
 
@@ -234,7 +235,7 @@ int main(int argc, char *argv[])
                     if (!args.step_out_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     break;
 
@@ -244,7 +245,7 @@ int main(int argc, char *argv[])
                     if (!args.serial_out_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     break;
 
@@ -259,10 +260,12 @@ int main(int argc, char *argv[])
                     break;
 
                 case 'h':
-                    return usage(NULL);
+                    print_usage(NULL);
+                    return EXIT_SUCCESS;
 
                 default:
-                    return usage(*argv);
+                    print_usage(*argv);
+                    return EXIT_FAILURE;
             }
         }
         else { //handle old positional argument interface
@@ -278,13 +281,14 @@ int main(int argc, char *argv[])
                     if (!args.block_out_file) {
                         perror("fopen");
                         printf("Error opening : %s\n",*argv);
-                        return(usage(0));
+                        return EXIT_FAILURE;
                     }
                     args.serial_out_file = args.block_out_file;
                     break;
 
                 default:
-                    return usage(*argv);
+                    print_usage(*argv);
+                    return EXIT_FAILURE;
             }
         }
     }
