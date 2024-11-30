@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
 
 // state_set(STATE_CHECK_MODE);
         
-    gc_init();
+    gc_init(false);
     protocol_main_loop();
 
     return exit_code;
