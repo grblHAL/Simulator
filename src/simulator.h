@@ -33,10 +33,10 @@ typedef void (*sim_hook_fp)(void); // Signature of functions to be inserted in s
 //simulation globals
 typedef struct sim_vars {
     uint64_t masterclock;
-    double sim_time;  // current time of the simulation.
+    double sim_time;  // current time of the simulation, in seconds since start.
     uint8_t started;  // don't start timers until first char recieved.
     enum {exit_NO, exit_REQ, exit_OK} exit;
-    float speedup;
+    float speedup; // current factor how much faster/slower sim time is compared to real time
     int32_t baud_ticks;
 #ifdef WIN32
     SOCKET socket_fd;
@@ -58,7 +58,8 @@ typedef struct arg_vars {
     FILE *block_out_file;
     FILE *step_out_file;
     FILE *serial_out_file;
-    double step_time;       // Minimum time step for printing stepper values. Given by user via command line
+    float speedup;          // desired factor how much faster/slower sim time is compared to real time. 0 means "a fast at possible"
+    double step_time;       // Minimum time step for printing stepper values, in sim time. Given by user via command line
     uint8_t comment_char;   // Char to prefix comments; default  '#' 
     uint16_t port;          // Port number for telnet communication
 } arg_vars_t;
@@ -69,7 +70,7 @@ extern arg_vars_t args;
 //extern system_t sys;
 
 // setup avr simulation
-void init_simulator (float time_multiplier);
+void init_simulator (void);
 
 // Shutdown simulator - run shutdown hooks, save eeeprom
 void shutdown_simulator (void);

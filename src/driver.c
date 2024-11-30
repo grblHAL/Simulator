@@ -418,7 +418,7 @@ bool driver_setup (settings_t *settings)
 // ensures hardware simulator gets some cycles in "parallel"
 void sim_process_realtime (uint_fast16_t state)
 {
-    platform_sleep(0);
+    //platform_sleep(0); // yield needed? or simply trust the OS's thread scheduler...
     on_execute_realtime(state);
 }
 
