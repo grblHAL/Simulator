@@ -274,7 +274,7 @@ probe_state_t probeGetState (void)
 // Start or stop spindle
 static void spindleSetState (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
-    mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.spindle.invert.mask, SPINDLE_MASK);
+    mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.pwm_spindle.invert.mask, SPINDLE_MASK);
 }
 
 // Variable spindle control functions
@@ -292,7 +292,7 @@ static uint_fast16_t spindleGetPWM (spindle_ptrs_t *spindle, float rpm)
 // Start or stop spindle
 static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t state, float rpm)
 {
-    mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.spindle.invert.mask, SPINDLE_MASK);
+    mcu_gpio_set(&gpio[SPINDLE_PORT], state.value ^ settings.pwm_spindle.invert.mask, SPINDLE_MASK);
 }
 
 // Returns spindle state in a spindle_state_t variable
@@ -300,7 +300,7 @@ static spindle_state_t spindleGetState (spindle_ptrs_t *spindle)
 {
     spindle_state_t state = {0};
 
-    state.value = gpio[SPINDLE_PORT].state.value ^ settings.spindle.invert.mask;
+    state.value = gpio[SPINDLE_PORT].state.value ^ settings.pwm_spindle.invert.mask;
 
     return state;
 }
@@ -317,14 +317,14 @@ static bool spindleConfig (spindle_ptrs_t *spindle)
 
 static void coolantSetState (coolant_state_t mode)
 {
-    mcu_gpio_set(&gpio[COOLANT_PORT], mode.value ^ settings.coolant_invert.mask, COOLANT_MASK);
+    mcu_gpio_set(&gpio[COOLANT_PORT], mode.value ^ settings.coolant.invert.mask, COOLANT_MASK);
 }
 
 static coolant_state_t coolantGetState (void)
 {
     coolant_state_t state = {0};
 
-    state.value = gpio[COOLANT_PORT].state.value ^ settings.coolant_invert.mask;
+    state.value = gpio[COOLANT_PORT].state.value ^ settings.coolant.invert.mask;
 
     return state;
 }
@@ -438,7 +438,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "240414";
+    hal.driver_version = "241209";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
