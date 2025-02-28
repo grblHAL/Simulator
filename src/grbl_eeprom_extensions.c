@@ -26,7 +26,7 @@
 #include "grbl/hal.h"
 #include "grbl/crc.h"
 
-nvs_transfer_result_t memcpy_to_eeprom(uint32_t destination, uint8_t *source, uint32_t size, bool with_checksum)
+bool memcpy_to_eeprom(uint32_t destination, uint8_t *source, uint32_t size, bool with_checksum)
 {
     uint32_t dest = destination;
 
@@ -41,10 +41,10 @@ nvs_transfer_result_t memcpy_to_eeprom(uint32_t destination, uint8_t *source, ui
 #endif
     }
     
-    return NVS_TransferResult_OK;
+    return true;
 }
 
-nvs_transfer_result_t memcpy_from_eeprom(uint8_t *destination, uint32_t source, uint32_t size, bool with_checksum)
+bool memcpy_from_eeprom(uint8_t *destination, uint32_t source, uint32_t size, bool with_checksum)
 {
     uint8_t *dest = destination; uint32_t sz = size;
 
@@ -52,9 +52,9 @@ nvs_transfer_result_t memcpy_from_eeprom(uint8_t *destination, uint32_t source, 
         *(destination++) = eeprom_get_char(source++);
 
 #if NVS_CRC_BYTES == 1
-    return with_checksum ? (calc_checksum(destination, sz) == eeprom_get_char(source) ? NVS_TransferResult_OK : NVS_TransferResult_Failed) : NVS_TransferResult_OK;
+    return !with_checksum || calc_checksum(destination, sz) == eeprom_get_char(source);
 #else
-    return with_checksum ? (calc_checksum(destination, sz) == (eeprom_get_char(source) | (eeprom_get_char(source + 1) << 8)) ? NVS_TransferResult_OK : NVS_TransferResult_Failed) : NVS_TransferResult_OK;
+    return !with_checksum || calc_checksum(destination, sz) == (eeprom_get_char(source) | (eeprom_get_char(source + 1) << 8));
 #endif
 }
 
