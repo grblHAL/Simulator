@@ -62,15 +62,15 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
 
 #if SQUARING_ENABLED
 
-inline static void set_step_outputs (axes_signals_t step_outbits_0)
+inline static void set_step_outputs (axes_signals_t step_out_0)
 {
-    axes_signals_t step_outbits_1;
+    axes_signals_t step_out_1;
 
-    step_outbits_1.mask = (step_outbits_0.mask & motors_1.mask) ^ settings.steppers.step_invert.mask;
-    step_outbits_0.mask = (step_outbits_0.mask & motors_0.mask) ^ settings.steppers.step_invert.mask;
+    step_out_1.bits = (step_out_0.bits & motors_1.bits) ^ settings.steppers.step_invert.bits;
+    step_out_0.bits = (step_out_0.bits & motors_0.bits) ^ settings.steppers.step_invert.bits;
 
-    mcu_gpio_set(&gpio[STEP_PORT0], step_outbits_0.mask, AXES_BITMASK);
-    mcu_gpio_set(&gpio[STEP_PORT1], step_outbits_1.mask, AXES_BITMASK);
+    mcu_gpio_set(&gpio[STEP_PORT0], step_out_0.bits, AXES_BITMASK);
+    mcu_gpio_set(&gpio[STEP_PORT1], step_out_1.bits, AXES_BITMASK);
 }
 
 static axes_signals_t getGangedAxes (bool auto_squared)
@@ -88,18 +88,18 @@ static axes_signals_t getGangedAxes (bool auto_squared)
 
 #else
 
-inline static void set_step_outputs (axes_signals_t step_outbits)
+inline static void set_step_outputs (axes_signals_t step_out)
 {
-    step_outbits.mask = (step_outbits.mask) ^ settings.steppers.step_invert.mask;
+    step_out.bits = (step_out.bits) ^ settings.steppers.step_invert.bits;
 
-    mcu_gpio_set(&gpio[STEP_PORT0], step_outbits.mask, AXES_BITMASK);
+    mcu_gpio_set(&gpio[STEP_PORT0], step_out.bits, AXES_BITMASK);
 }
 
 #endif
 
-inline static void set_dir_outputs (axes_signals_t dir_outbits)
+inline static void set_dir_outputs (axes_signals_t dir_out)
 {
-    mcu_gpio_set(&gpio[DIR_PORT], dir_outbits.value ^ settings.steppers.dir_invert.mask, AXES_BITMASK);
+    mcu_gpio_set(&gpio[DIR_PORT], dir_out.value ^ settings.steppers.dir_invert.mask, AXES_BITMASK);
 }
 
 static void stepperEnable (axes_signals_t enable, bool hold)
@@ -142,13 +142,13 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 // If spindle synchronized motion switch to PID version.
 static void stepperPulseStart (stepper_t *stepper)
 {
-    if(stepper->new_block) {
-        stepper->new_block = false;
-        set_dir_outputs(stepper->dir_outbits);
+    if(stepper->dir_changed.bits) {
+        stepper->dir_changed.bits = 0;
+        set_dir_outputs(stepper->dir_out);
     }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
     }
 }
 
@@ -157,13 +157,13 @@ static void stepperPulseStart (stepper_t *stepper)
 // TODO: only delay after setting dir outputs?
 static void stepperPulseStartDelayed (stepper_t *stepper)
 {
-    if(stepper->new_block) {
-        stepper->new_block = false;
-        set_dir_outputs(stepper->dir_outbits);
+    if(stepper->dir_changed.bits) {
+        stepper->dir_changed.bits = 0;
+        set_dir_outputs(stepper->dir_out);
     }
 
-    if(stepper->step_outbits.value) {
-//        next_step_outbits = stepper->step_outbits; // Store out_bits
+    if(stepper->step_out.bits) {
+//        next_step_out = stepper->step_out; // Store out_bits
 //        PULSE_TIMER->CTL |= TIMER_A_CTL_CLR|TIMER_A_CTL_MC1;
     }
 }
@@ -438,7 +438,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "241209";
+    hal.driver_version = "250328";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
