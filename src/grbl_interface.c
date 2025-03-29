@@ -201,10 +201,10 @@ static void printBlock (void)
     if(b != last_block && b != NULL) {
         int i;
         for (i = 0; i < N_AXIS; i++) {
-            if(b->direction_bits.mask & bit(i))
-                block_position[i] -= b->steps[i];
+            if(b->direction.bits & bit(i))
+                block_position[i] -= b->steps.value[i];
             else
-                block_position[i] += b->steps[i];
+                block_position[i] += b->steps.value[i];
             fprintf(args.block_out_file,"%d, ", block_position[i]);
         }
         fprintf(args.block_out_file,"%f\n", b->entry_speed_sqr);
