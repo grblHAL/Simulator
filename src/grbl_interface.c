@@ -6,7 +6,7 @@
   Copyright (c) 2012 Jens Geisler
   Copyright (c) 2014-2015 Adam Shelly
 
-  2020-2021 - modified for grblHAL by Terje Io
+  2020-2025 - modified for grblHAL by Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -126,6 +126,10 @@ void grbl_per_byte (void)
                 break;
 
             case '?':
+                protocol_enqueue_realtime_command(CMD_STATUS_REPORT);
+                break;
+
+            case '@':
                 protocol_enqueue_realtime_command(CMD_STATUS_REPORT_ALL);
                 break;
 

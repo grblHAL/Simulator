@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2017-2021 Terje Io
+  Copyright (c) 2017-2025 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -134,6 +134,7 @@ const io_stream_t *serialInit (void)
 {
         static const io_stream_t stream = {
         .type = StreamType_Serial,
+		.is_connected = stream_connected,
         .read = serialGetC,
         .write = serialWriteS,
         .write_char = serialPutC,

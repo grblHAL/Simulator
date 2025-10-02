@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -170,17 +170,12 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
 static limit_signals_t limitsGetState()
 {
-    limit_signals_t signals = {
-		.min.mask = 0,
-		.max.mask = 0,
-		.min2.mask = 0,
-		.max2.mask = 0
-	};
+    limit_signals_t signals = {0};
 
     signals.min.value = gpio[LIMITS_PORT0].state.value;
 
     if (settings.limits.invert.mask)
-        signals.min.value ^= settings.limits.invert.mask;
+        signals.min.mask ^= settings.limits.invert.mask;
 
     return signals;
 }
@@ -198,12 +193,7 @@ static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
 static limit_signals_t limitsGetHomeState()
 {
-    limit_signals_t signals = {
-		.min.mask = 0,
-		.max.mask = 0,
-		.min2.mask = 0,
-		.max2.mask = 0
-	};
+    limit_signals_t signals = {0};
 
     if(motors_0.mask) {
 
@@ -241,12 +231,13 @@ static void limitsEnable (bool on, axes_signals_t homing_cycle)
 
 static control_signals_t systemGetState (void)
 {
-    control_signals_t signals = {0};
+    control_signals_t signals;
 
-    signals.value = gpio[CONTROL_PORT].state.value;
+    signals.mask = gpio[CONTROL_PORT].state.value;
+	signals.limits_override = settings.control_invert.limits_override;
 
     if(settings.control_invert.mask)
-        signals.value ^= settings.control_invert.mask;
+        signals.mask ^= settings.control_invert.mask;
 
     return signals;
 }
@@ -438,7 +429,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "250328";
+    hal.driver_version = "251002";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;

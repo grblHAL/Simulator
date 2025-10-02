@@ -3,7 +3,7 @@
 
   Part of GrblHAL
 
-  Copyright (c) 2020 Terje Io
+  Copyright (c) 2020-2025 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -133,23 +133,23 @@ void mcu_master_clock (void)
     }
 }
 
-void mcu_gpio_set (gpio_port_t *port, uint8_t pins, uint8_t mask)
+void mcu_gpio_set (gpio_port_t *port, uint16_t pins, uint16_t mask)
 {
     port->state.value = (port->state.value & ~mask) | (pins & mask);
 }
 
-uint8_t mcu_gpio_get (gpio_port_t *port, uint8_t mask)
+uint8_t mcu_gpio_get (gpio_port_t *port, uint16_t mask)
 {
     return port->state.value & mask;
 }
 
-void mcu_gpio_toggle_in (gpio_port_t *port, uint8_t pins)
+void mcu_gpio_toggle_in (gpio_port_t *port, uint16_t pins)
 {
     mcu_gpio_in(port, (port->state.value & pins) ^ pins, pins);
 }
 
 // Set input pin, trigger interrupt if enabled
-void mcu_gpio_in (gpio_port_t *port, uint8_t pins, uint8_t mask)
+void mcu_gpio_in (gpio_port_t *port, uint16_t pins, uint16_t mask)
 {
     pins &= mask;
 

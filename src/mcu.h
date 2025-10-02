@@ -3,7 +3,7 @@
 
   Part of GrblHAL
 
-  Copyright (c) 2020 Terje Io
+  Copyright (c) 2020-2025 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -73,17 +73,25 @@ typedef struct
 } mcu_uart_t;
 
 typedef union {
-    uint8_t value;
-    uint8_t mask;
+    uint16_t value;
+    uint16_t mask;
     struct {
-        uint8_t pin0 :1,
-                pin1 :1,
-                pin2 :1,
-                pin3 :1,
-                pin4 :1,
-                pin5 :1,
-                pin6 :1,
-                pin7 :1;
+        uint16_t pin0  :1,
+                 pin1  :1,
+                 pin2  :1,
+                 pin3  :1,
+                 pin4  :1,
+                 pin5  :1,
+                 pin6  :1,
+                 pin7  :1,
+                 pin8  :1,
+                 pin9  :1,
+                 pin10 :1,
+                 pin11 :1,
+                 pin12 :1,
+                 pin13 :1,
+                 pin14 :1,
+                 pin15 :1;
     };
 } gpio_pins_t;
 
@@ -111,10 +119,10 @@ void mcu_enable_interrupts (void);
 void mcu_disable_interrupts (void);
 void mcu_master_clock (void);
 void mcu_register_irq_handler (interrupt_handler handler, irq_num_t irq_num);
-void mcu_gpio_set (gpio_port_t *port, uint8_t pins, uint8_t mask);
-uint8_t mcu_gpio_get (gpio_port_t *port, uint8_t mask);
-void mcu_gpio_in (gpio_port_t *port, uint8_t pins, uint8_t mask);
-void mcu_gpio_toggle_in (gpio_port_t *port, uint8_t pin);
+void mcu_gpio_set (gpio_port_t *port, uint16_t pins, uint16_t mask);
+uint8_t mcu_gpio_get (gpio_port_t *port, uint16_t mask);
+void mcu_gpio_in (gpio_port_t *port, uint16_t pins, uint16_t mask);
+void mcu_gpio_toggle_in (gpio_port_t *port, uint16_t pins);
 void simulate_serial (void);
 
 #endif
