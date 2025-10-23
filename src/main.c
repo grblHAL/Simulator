@@ -427,10 +427,12 @@ int main(int argc, char *argv[])
     platform_kill_thread(th); //need force kill since original main has no return.
 
     // close the files we opened
-    fclose(args.block_out_file);
-    fclose(args.step_out_file);
-    fclose(args.serial_out_file);
-
+	if (args.block_out_file != stdout && args.block_out_file != args.serial_out_file)
+		fclose(args.block_out_file);
+	if (args.step_out_file != stderr)
+		fclose(args.step_out_file);
+	if (args.serial_out_file != stdout && args.serial_out_file != args.block_out_file)
+		fclose(args.serial_out_file);
 
     if(args.port) {
 #ifdef WIN32

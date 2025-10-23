@@ -39,11 +39,6 @@ double next_print_time;
 static void print_steps(bool force);
 static void printBlock(void);
 
-// Functions for peeking inside planner state:
-plan_block_t *get_block_buffer();
-plan_block_t *get_block_buffer_head();
-plan_block_t *get_block_buffer_tail();
-
 void grbl_app_init (void)
 {
     //setup local tacking vars
@@ -138,7 +133,7 @@ void grbl_per_byte (void)
                 break;
         }
 
-        if(args.block_out_file != stdout)
+//        if(args.block_out_file != stdout)
             printBlock();   //maybe print newest block
     } else
         printBlock();   //maybe print newest block
@@ -188,11 +183,6 @@ static void print_steps (bool force)
         while (next_print_time <= sim.sim_time)
             next_print_time += args.step_time;
     }
-}
-
-static plan_block_t *plan_get_recent_block (void)
-{
-    return get_block_buffer_head() == get_block_buffer_tail() ? NULL : get_block_buffer_head()->prev;
 }
 
 // Print information about the most recently inserted block

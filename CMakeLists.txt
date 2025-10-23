@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 project(grblHAL-sim C)
 
 add_compile_definitions(F_CPU=16000000)
-add_compile_definitions(INJECT_BLOCK_BUFFER_SIZE=256)
 #add_compile_definitions(SQUARING_ENABLED=1)
 
 include(src/grbl/CMakeLists.txt)
@@ -49,7 +48,6 @@ add_executable(grblHAL_sim
     src/mcu.c
     src/serial.c
     src/grbl_interface.c
-    src/planner_inject_accessors.c
     ${platform_SRC}
 )
 
