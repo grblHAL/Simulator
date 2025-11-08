@@ -5,7 +5,7 @@
 
   Copyright (c) 2012 Adam Shelly
 
-  2020 - modified for grblHAL by Terje Io
+  2025 - modified for grblHAL by Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -80,9 +80,9 @@ status_code_t validator_report_status_message (status_code_t status_code)
 }
 
 // Read fom input
-int16_t serial_read()
+int32_t serial_read()
 {
-    int16_t data = fgetc(args.input_file);
+    int32_t data = fgetc(args.input_file);
 
     if (data == PLATFORM_EXTRA_CR)
         return(0);

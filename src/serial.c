@@ -39,15 +39,15 @@ static void uart_interrupt_handler (void);
 //
 // serialGetC - returns -1 if no data available
 //
-static int16_t serialGetC (void)
+static int32_t serialGetC (void)
 {
-    int16_t data;
+    int32_t data;
     uint_fast16_t bptr = rxbuffer.tail;
 
     if(bptr == rxbuffer.head)
         return -1; // no data available else EOF
 
-    data = rxbuffer.data[bptr++];                   // Get next character, increment tmp pointer
+    data = (int32_t)rxbuffer.data[bptr++];          // Get next character, increment tmp pointer
     rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
 
     return data;
@@ -78,7 +78,7 @@ static void serialRxCancel (void)
     rxbuffer.head = (rxbuffer.tail + 1) & (RX_BUFFER_SIZE - 1);
 }
 
-static bool serialPutC (const char c)
+static bool serialPutC (const uint8_t c)
 {
     uint_fast16_t next_head;
 
@@ -102,7 +102,7 @@ static bool serialPutC (const char c)
 
 static void serialWriteS (const char *data)
 {
-    char c, *ptr = (char *)data;
+    uint8_t c, *ptr = (uint8_t *)data;
 
     while((c = *ptr++) != '\0')
         serialPutC(c);
@@ -189,9 +189,9 @@ static void uart_interrupt_handler (void)
             uart.rx_irq = 0;
             if(data == 0x06)
                 sim.exit = exit_REQ;
-            if(!enqueue_realtime_command((char)data)) {
-                rxbuffer.data[rxbuffer.head] = (char)data;  // Add data to buffer
-                rxbuffer.head = bptr;                       // and update pointer
+            if(!enqueue_realtime_command((uint8_t)data)) {
+                rxbuffer.data[rxbuffer.head] = (uint8_t)data;  	// Add data to buffer
+                rxbuffer.head = bptr;                       	// and update pointer
             }
         }
     }
