@@ -1,13 +1,13 @@
 {
   "caps":
   {
-    "axes": 4,
+    "axes": 7,
     "usb_cdc": 0,
     "uart": 1,
     "serial_ports": 1,
     "eeprom": 1,
-    "ganged_axes": 1,
-    "auto_square": 1,
+    "ganged_axes": 3,
+    "auto_square": 3,
     "probe": 1,
     "safety_door": 1,
     "estop": 1,
@@ -22,7 +22,7 @@
       "symbol": "LINUX",
       "URL": "",
       "caps": {
-        "axes": 3
+        "axes": 7
       }
     },
     {
@@ -30,7 +30,7 @@
       "symbol": "WIN64",
       "URL": "",
       "caps": {
-        "axes": 3
+        "axes": 7
       }
     }
   ]
