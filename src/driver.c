@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2025 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -301,6 +301,10 @@ static bool spindleConfig (spindle_ptrs_t *spindle)
     if(spindle == NULL)
         return false;
 
+	static spindle_pwm_t spindle_pwm;
+
+	spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, 1000000);
+
 //    spindle_update_caps(spindle, spindle->cap.variable ? &spindle_pwm : NULL);
 
     return true;
@@ -429,7 +433,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "251002";
+    hal.driver_version = "260324";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
