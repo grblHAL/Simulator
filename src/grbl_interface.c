@@ -39,6 +39,18 @@ double next_print_time;
 static void print_steps(bool force);
 static void printBlock(void);
 
+//True when the grbl thread has nothing left to do: no queued input, no planned
+//or executing motion, no running delay (G4 dwell) and no response bytes still
+//on their way out. The state check alone misses dwells, which run in STATE_IDLE.
+static bool grbl_is_idle (void)
+{
+    return state_get() < STATE_HOMING &&
+            plan_get_current_block() == NULL &&
+             !driver_delay_pending() &&
+              hal.stream.get_rx_buffer_count() == 0 &&
+               !(uart.tx_irq_enable || uart.tx_flag);
+}
+
 void grbl_app_init (void)
 {
     //setup local tacking vars
@@ -59,6 +71,13 @@ void grbl_per_tick (void)
 void grbl_per_byte (void)
 {
     if(sim.socket_fd) {
+        // In socket mode the console keyboard only toggles simulated pins, so
+        // polling it every byte slot (~11.5k conhost round-trips per simulated
+        // second on Windows) is wasted syscalls. Every 128 slots (~11 ms of
+        // sim time at 115200 baud) is far below human reaction time.
+        static uint_fast8_t kbd_divider = 0;
+
+        if((++kbd_divider & 0x7f) == 0)
         switch (platform_poll_stdin()) {
 
             case 'e':
@@ -133,7 +152,13 @@ void grbl_per_byte (void)
                 break;
         }
 
-//        if(args.block_out_file != stdout)
+        // printBlock() runs on the sim thread; in socket mode its default
+        // stdout target is a live console, and a console write that stalls
+        // (Windows QuickEdit text selection blocks writers outright, and
+        // conhost rendering is slow even when healthy) freezes the entire
+        // simulator - serial polling included. Only print when -b redirected
+        // block output to a file.
+        if(args.block_out_file != stdout)
             printBlock();   //maybe print newest block
     } else
         printBlock();   //maybe print newest block
@@ -147,27 +172,41 @@ void grbl_app_exit (void)
 
 //show current position in steps
 static void print_steps (bool force)
-{ 
+{
     static plan_block_t* printed_block = NULL;
+
+    //Allow exit when idle. Prevents aborting before all streamed commands have run
+    //(kept first - order matters: this must run every tick regardless of -r).
+    if (sim.exit == exit_REQ && grbl_is_idle()) {
+        //The grbl thread runs on wall time and may only look idle for a moment,
+        //e.g. between the hal.delay_ms() slices of a G4 dwell or between draining
+        //the input and planning a move. Give it real time to show new activity
+        //before trusting the snapshot; simulated time is no yardstick for this
+        //since it can run far ahead of the grbl thread's progress.
+        platform_sleep(1000);
+        if (grbl_is_idle())
+            sim.exit = exit_OK;
+    }
+
+    if (next_print_time == 0.0)
+        return;  //no printing - bail before the (per-tick) plan_get_current_block()
 
     plan_block_t* current_block = plan_get_current_block();
     int ocr = 0;
 
-    //Allow exit when idle. Prevents aborting before all streamed commands have run
-    if (sim.exit == exit_REQ && state_get() < STATE_HOMING )
-        sim.exit = exit_OK;
-
-    if (next_print_time == 0.0)
-        return;  //no printing
+    // Derive sim time lazily from masterclock. This is byte-identical to the value
+    // formerly stored in sim.sim_time: the same (float)masterclock/(float)F_CPU
+    // float division, assigned to a double, so -r timestamps are unchanged.
+    double sim_time = (float)sim.masterclock / (float)F_CPU;
 
     #ifdef VARIABLE_SPINDLE
     if(SPINDLE_TCCRA_REGISTER >= 127) ocr = SPINDLE_OCR_REGISTER;
     #endif
 
     if (current_block != printed_block) {
-        //new block. 
+        //new block.
         if (block_number) //print values from the end of prev block
-            fprintf(args.step_out_file, "%12.5f %d, %d, %d, %d\n", sim.sim_time, sys.position[X_AXIS], sys.position[Y_AXIS], sys.position[Z_AXIS],ocr);
+            fprintf(args.step_out_file, "%12.5f %d, %d, %d, %d\n", sim_time, sys.position[X_AXIS], sys.position[Y_AXIS], sys.position[Z_AXIS],ocr);
 
         printed_block = current_block;
         if (current_block == NULL)
@@ -176,11 +215,11 @@ static void print_steps (bool force)
         fprintf(args.step_out_file, "# block number %d\n", block_number++);
     }
     //print at correct interval while executing block
-    else if ((current_block && sim.sim_time>=next_print_time) || force ) {
-        fprintf(args.step_out_file, "%12.5f %d, %d, %d, %d\n", sim.sim_time, sys.position[X_AXIS], sys.position[Y_AXIS], sys.position[Z_AXIS], ocr);
+    else if ((current_block && sim_time>=next_print_time) || force ) {
+        fprintf(args.step_out_file, "%12.5f %d, %d, %d, %d\n", sim_time, sys.position[X_AXIS], sys.position[Y_AXIS], sys.position[Z_AXIS], ocr);
         fflush(args.step_out_file);
         //make sure the simulation time doesn't get ahead of next_print_time
-        while (next_print_time <= sim.sim_time)
+        while (next_print_time <= sim_time)
             next_print_time += args.step_time;
     }
 }

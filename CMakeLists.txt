@@ -1,8 +1,33 @@
 cmake_minimum_required(VERSION 3.10)
 project(grblHAL-sim C)
 
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+endif()
+
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    # ISR handlers run on a separate host thread; keep type-punning-heavy
+    # embedded code out of strict-aliasing territory.
+    add_compile_options(-fno-strict-aliasing)
+endif()
+
 add_compile_definitions(F_CPU=16000000)
 #add_compile_definitions(SQUARING_ENABLED=1)
+
+# Capture the effective build-time flags for the -v/--version output.
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _sim_build_type)
+if(_sim_build_type STREQUAL "")
+    set(SIM_BUILD_TYPE "None")
+else()
+    set(SIM_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+endif()
+string(STRIP "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${_sim_build_type}}" SIM_C_FLAGS)
+configure_file(
+    ${CMAKE_CURRENT_LIST_DIR}/src/build_info.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/build_info.h
+    @ONLY
+)
 
 include(src/grbl/CMakeLists.txt)
 
@@ -16,6 +41,7 @@ if (WIN32)
 
     set(platform_LIB
         ws2_32
+        winmm  # timeBeginPeriod/timeEndPeriod (1 ms Sleep granularity)
     )
 endif(WIN32)
 
@@ -51,13 +77,16 @@ add_executable(grblHAL_sim
     ${platform_SRC}
 )
 
-target_link_libraries(grblHAL_sim PRIVATE 
+target_link_libraries(grblHAL_sim PRIVATE
     m
     grbl
     ${platform_LIB}
 )
 
-add_executable(grblHAL_validator 
+# Generated build_info.h lands in the build dir.
+target_include_directories(grblHAL_sim PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(grblHAL_validator
     src/eeprom.c
     src/grbl_eeprom_extensions.c
     src/validator.c 

@@ -33,8 +33,11 @@ typedef void (*sim_hook_fp)(void); // Signature of functions to be inserted in s
 //simulation globals
 typedef struct sim_vars {
     uint64_t masterclock;
-    double sim_time;  // current time of the simulation, in seconds since start.
+    // NOTE: sim time (seconds since start) is derived lazily from masterclock at
+    // the point(s) it is consumed as (float)masterclock/(float)F_CPU; it is no
+    // longer stored/updated per tick. See print_steps() in grbl_interface.c.
     uint8_t started;  // don't start timers until first char recieved.
+    volatile uint32_t grbl_pulse; // grbl thread main-loop heartbeat; 0 until the boot sequence (which flushes the input stream) is done
     enum {exit_NO, exit_REQ, exit_OK} exit;
     float speedup; // current factor how much faster/slower sim time is compared to real time
     int32_t baud_ticks;

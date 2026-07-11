@@ -28,6 +28,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #ifdef WIN32
 #include <winsock2.h>
@@ -35,11 +36,13 @@
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #endif
 
 #include "simulator.h"
 #include "eeprom.h"
 #include "grbl_interface.h"
+#include "build_info.h"
 
 #include "grbl/grbllib.h"
 
@@ -70,6 +73,7 @@ void print_usage(const char* badarg)
       "    -p <port>          : port to open raw telnet communication.\n"
       "    -c<comment_char>   : character to print before each line from grbl.  default = '#'\n"
       "    -n                 : no comments before grbl response lines.\n"
+      "    -v                 : print version and build information.\n"
       "    -h                 : this help.\n"
       "\n"
       "  <time_step> and <block_file> can be specifed with option flags or positional parameters\n"
@@ -77,6 +81,21 @@ void print_usage(const char* badarg)
       "  ^-F to shutdown cleanly\n"
       "\n",
       progname);
+}
+
+void print_version(void)
+{
+    printf("grblHAL simulator\n"
+      "  Build type : %s\n"
+      "  Compiler   : %s\n"
+      "  Target     : %s\n"
+      "  C flags    : %s\n"
+      "  Built      : %s %s\n",
+      SIM_BUILD_TYPE,
+      SIM_COMPILER,
+      SIM_TARGET,
+      SIM_C_FLAGS[0] ? SIM_C_FLAGS : "(none)",
+      __DATE__, __TIME__);
 }
 
 //wrapper for thread interface
@@ -99,6 +118,10 @@ uint8_t sim_socket_in()
     if(sim.socket_fd == INVALID_SOCKET) {
         sim.socket_fd = accept(socket_fd, NULL, NULL);
         setsockopt(sim.socket_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&t, sizeof(t));
+        // Disable Nagle: senders (gSender & co) poll with single-byte '?' and
+        // responses are small; Nagle + delayed ACK adds up to ~200 ms per line.
+        BOOL nodelay = TRUE;
+        setsockopt(sim.socket_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&nodelay, sizeof(nodelay));
         u_long mode = 1;
         ioctlsocket(sim.socket_fd, FIONBIO, &mode); // set non-blocking
     } else if((retval = recv(sim.socket_fd, &c, 1, 0)) < 1) {
@@ -124,45 +147,62 @@ uint8_t sim_socket_in()
     struct timeval tv = {
         .tv_sec = 0,
         .tv_usec = 0
-    }; 
+    };
 
-    fd_set cfds = rfds;
+    // Use select() ONLY to detect a new incoming connection on the listening
+    // socket. Data on the accepted connection is read with a single
+    // non-blocking read() below (the accepted socket is put in O_NONBLOCK once
+    // right after accept), instead of select()ing on it every poll.
+    fd_set cfds;
+    FD_ZERO(&cfds);
+    FD_SET(socket_fd, &cfds);
 
-    if((retval = select((socket_fd > sim.socket_fd ? socket_fd : sim.socket_fd) + 1, &cfds, NULL, NULL, &tv)) > 0) {
+    int accepted = 0;
 
-        if(FD_ISSET(socket_fd, &cfds)) {
+    if((retval = select(socket_fd + 1, &cfds, NULL, NULL, &tv)) > 0 && FD_ISSET(socket_fd, &cfds)) {
 
-            socklen_t addrlen = sizeof(struct sockaddr_in);
-            struct sockaddr_in client_addr;
+        socklen_t addrlen = sizeof(struct sockaddr_in);
+        struct sockaddr_in client_addr;
 
-            sim.socket_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &addrlen);
-            if (sim.socket_fd < 0) {
-                printf("Fatal: Error on socket accept.\n");
-                exit(-5);
-            }
-
-            FD_SET(sim.socket_fd, &rfds);
-
-            struct timeval t = {
-                .tv_sec = 0,
-                .tv_usec = 0
-            }; 
-
-            setsockopt(sim.socket_fd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(t));
+        sim.socket_fd = accept(socket_fd, (struct sockaddr *) &client_addr, &addrlen);
+        if (sim.socket_fd < 0) {
+            printf("Fatal: Error on socket accept.\n");
+            exit(-5);
         }
 
-        if(FD_ISSET(sim.socket_fd, &cfds)) {
+        FD_SET(sim.socket_fd, &rfds);
 
-            retval = read(sim.socket_fd, &c, 1);
+        // Put the accepted socket into non-blocking mode once so subsequent
+        // reads return immediately when there is no data.
+        int flags = fcntl(sim.socket_fd, F_GETFL, 0);
+        if (flags != -1)
+            fcntl(sim.socket_fd, F_SETFL, flags | O_NONBLOCK);
 
-            if(retval == 0) {
-                close(sim.socket_fd);
-                FD_CLR(sim.socket_fd, &rfds);
-                sim.socket_fd = 0;
-            }
+        // Disable Nagle: status polls and responses are tiny; Nagle + delayed
+        // ACK can hold the tail of a response line back by up to ~200 ms.
+        int nodelay = 1;
+        setsockopt(sim.socket_fd, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+
+        accepted = 1;
+    }
+
+    // Read incoming data from the accepted connection. Skip on the poll where
+    // we just accepted (a brand-new connection has no data yet), matching the
+    // old select()-gated behavior.
+    if(!accepted && sim.socket_fd > 0) {
+
+        retval = read(sim.socket_fd, &c, 1);
+
+        if(retval == 0) {
+            close(sim.socket_fd);
+            FD_CLR(sim.socket_fd, &rfds);
+            sim.socket_fd = 0;
+            c = 0;
+        } else if(retval < 0) {
+            c = 0;   // EAGAIN/EWOULDBLOCK: no data available
+        }
 //            if(c && c != '?' && c >= ' ')
 //                sim_serial_out(c == '\r' ? '\n' : c);
-        }
     }
 
     return c;
@@ -198,6 +238,11 @@ int main(int argc, char *argv[])
     while (argc > 1) {
         argv++; argc--;
         if (argv[0][0] == '-') {
+
+            if (!strcmp(argv[0], "--version")) {
+                print_version();
+                return EXIT_SUCCESS;
+            }
 
             switch(argv[0][1]){
 
@@ -258,6 +303,10 @@ int main(int argc, char *argv[])
                     argv++; argc--;
                     args.port = atoi(*argv);
                     break;
+
+                case 'v':
+                    print_version();
+                    return EXIT_SUCCESS;
 
                 case 'h':
                     print_usage(NULL);

@@ -60,3 +60,8 @@
 #define PROBE_BIT           (1<<PROBE_PIN)
 #define PROBE_CONNECTED_BIT (1<<PROBE_CONNECTED_PIN)
 #define PROBE_MASK          (PROBE_BIT|PROBE_CONNECTED_BIT)
+
+#include <stdbool.h>
+
+// true while a hal.delay_ms() countdown is running (e.g. the grbl thread blocked in a G4 dwell)
+bool driver_delay_pending (void);

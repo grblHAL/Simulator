@@ -24,12 +24,17 @@
 
 #include <conio.h>
 #include <windows.h>
+#include <mmsystem.h>
 #include "platform.h"
 
 #define NS_PER_SEC 1000000000
 #define MICRO_PER_MILLI 1000
 
 double ns_per_perfcount;
+
+// Saved console input mode so QuickEdit can be restored on exit.
+static DWORD orig_console_mode;
+static int console_mode_saved = 0;
 
 //any platform-specific setup that must be done before sim starts here
 void platform_init()
@@ -38,11 +43,33 @@ void platform_init()
 
     QueryPerformanceFrequency((LARGE_INTEGER*)&counts_per_sec);
     ns_per_perfcount = (float)NS_PER_SEC / counts_per_sec;
+
+    // Default Sleep() granularity is ~15.6 ms; the sim_loop control frame
+    // sleeps every ~20 ms, so without this the frame pacing (and with it
+    // serial response latency) jitters by a whole scheduler quantum.
+    timeBeginPeriod(1);
+
+    // Disable QuickEdit mode: with it enabled, clicking in the console window
+    // starts a text selection that blocks ALL console writes until dismissed,
+    // freezing the whole simulator (both threads print to this console).
+    HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+    if (hstdin != INVALID_HANDLE_VALUE && GetConsoleMode(hstdin, &mode)) {
+        orig_console_mode = mode;
+        console_mode_saved = 1;
+        SetConsoleMode(hstdin, (mode | ENABLE_EXTENDED_FLAGS) & ~ENABLE_QUICK_EDIT_MODE);
+    }
 }
 
 //cleanup int here;
 void platform_terminate()
 {
+    timeEndPeriod(1);
+
+    if (console_mode_saved) {
+        SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), orig_console_mode);
+        console_mode_saved = 0;
+    }
 }
 
 //returns a free-running 32 bit nanosecond counter which rolls over
