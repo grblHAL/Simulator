@@ -40,6 +40,7 @@
 #include "simulator.h"
 #include "eeprom.h"
 #include "grbl_interface.h"
+#include "build_info.h"
 
 #include "grbl/grbllib.h"
 
@@ -70,6 +71,7 @@ void print_usage(const char* badarg)
       "    -p <port>          : port to open raw telnet communication.\n"
       "    -c<comment_char>   : character to print before each line from grbl.  default = '#'\n"
       "    -n                 : no comments before grbl response lines.\n"
+      "    -v                 : print version and build information.\n"
       "    -h                 : this help.\n"
       "\n"
       "  <time_step> and <block_file> can be specifed with option flags or positional parameters\n"
@@ -77,6 +79,21 @@ void print_usage(const char* badarg)
       "  ^-F to shutdown cleanly\n"
       "\n",
       progname);
+}
+
+void print_version(void)
+{
+    printf("grblHAL simulator\n"
+      "  Build type : %s\n"
+      "  Compiler   : %s\n"
+      "  Target     : %s\n"
+      "  C flags    : %s\n"
+      "  Built      : %s %s\n",
+      SIM_BUILD_TYPE,
+      SIM_COMPILER,
+      SIM_TARGET,
+      SIM_C_FLAGS[0] ? SIM_C_FLAGS : "(none)",
+      __DATE__, __TIME__);
 }
 
 //wrapper for thread interface
@@ -199,6 +216,11 @@ int main(int argc, char *argv[])
         argv++; argc--;
         if (argv[0][0] == '-') {
 
+            if (!strcmp(argv[0], "--version")) {
+                print_version();
+                return EXIT_SUCCESS;
+            }
+
             switch(argv[0][1]){
 
                 case 'c':  //set Comment char 
@@ -258,6 +280,10 @@ int main(int argc, char *argv[])
                     argv++; argc--;
                     args.port = atoi(*argv);
                     break;
+
+                case 'v':
+                    print_version();
+                    return EXIT_SUCCESS;
 
                 case 'h':
                     print_usage(NULL);
