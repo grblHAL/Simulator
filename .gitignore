@@ -24,7 +24,7 @@ $RECYCLE.BIN/
 
 # Build folder
 
-build
+build*
 
 #
 # =========================
