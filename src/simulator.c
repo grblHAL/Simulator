@@ -64,7 +64,11 @@ void simulate_hardware (bool do_serial)
 {
     //do one tick
     sim.masterclock++;
-    sim.sim_time = (float)sim.masterclock / (float)F_CPU;
+    // sim_time is derived lazily from masterclock where it is consumed (see
+    // print_steps in grbl_interface.c). Computing it here every tick was a
+    // needless u64->float convert + divide at 16 M ticks/s. The lazy expression
+    // uses the exact same (float)masterclock/(float)F_CPU rounding, so -r
+    // step-report timestamps stay byte-identical.
 
     mcu_master_clock();
 
@@ -79,25 +83,65 @@ void simulate_hardware (bool do_serial)
   //  can ignore pinout int vect - hw start/hold not supported
 }
 
+// Grow/shrink the per-frame tick budget without integer overflow: event skipping
+// lets a frame cover a huge simulated span, so the running product must be
+// clamped in the double domain before converting back.
+static uint64_t scale_ticks_per_frame (uint64_t ticks, double factor, uint64_t max)
+{
+    double scaled = (double)ticks * factor;
+
+    return scaled >= (double)max ? max : (scaled < 1.0 ? 1 : (uint64_t)scaled);
+}
+
 // Runs the hardware simulator at the desired rate until sim.exit is set
 void sim_loop (void)
 {
-    // a sensible control frame length is yet to be found.
-    // the currrent 100ms are a blind guess, assuming some small multiple
-    // of the OS's thread scheduler's time splice makes sense.
-    // smaller means less jitter in the resulting sim time.
-    // too small makes it worse again because of the limited resultion of plattform_sleep(..)
-    // and a simple P controller may be not enough any longer
-    const uint32_t control_frame_ns = 100 * 1000 * 1000; // in real time
+    // Control frame length trades throughput overhead against interactive
+    // latency: serial input is only polled during a frame's simulation burst,
+    // so a byte arriving while we sleep waits for the next frame - the frame
+    // length is the worst-case added response latency at -t 1. With the
+    // event-skipping tick loop a frame's bookkeeping is cheap, so 20 ms (was
+    // 100 ms) costs nothing measurable while cutting mean '?'-to-report
+    // latency from ~45 ms to ~10 ms. Much smaller would run into
+    // platform_sleep() resolution (1 ms on Windows, and only with
+    // timeBeginPeriod(1) - see platform_windows.c).
+    const uint32_t control_frame_ns = 20 * 1000 * 1000; // in real time
+
+    // prevent runaway growth of (and undefined conversions to) the tick budget
+    // now that event skipping allows huge simulated spans per control frame
+    const uint64_t max_ticks_per_frame = (uint64_t)1 << 40;
 
     int32_t sleep_time_us = 0; // sleep time per control frame
-    uint32_t ticks_per_frame = F_CPU / 100; // start simulating a few ticks before entering the control loop
+    uint64_t ticks_per_frame = F_CPU / 100; // start simulating a few ticks before entering the control loop
     uint64_t target_ticks = ticks_per_frame;
     uint32_t ns_prev = platform_ns();
     uint64_t next_byte_tick = F_CPU;   //wait 1 sec (sim time) before reading IO.
 
     while (sim.exit != exit_OK  ) { //don't quit until idle
         while (sim.masterclock < target_ticks) {
+
+            // Jump over ticks where provably nothing happens: no timer expiry or
+            // reload, no pending GPIO interrupt, no serial byte due. ISRs still
+            // fire at exactly the tick they would in tick-by-tick simulation.
+            // Step reporting (-r) samples state every tick, so it forces the
+            // tick-by-tick path to keep its output identical.
+            if (args.step_time == 0.0 && sim.masterclock < next_byte_tick) {
+                uint64_t limit = next_byte_tick - sim.masterclock;
+                uint64_t remaining = target_ticks - sim.masterclock;
+                if (remaining < limit)
+                    limit = remaining;
+                if (limit > MCU_MAX_SKIP)
+                    limit = MCU_MAX_SKIP;
+                uint32_t skip = mcu_ticks_to_event((uint32_t)limit);
+                if (skip) {
+                    mcu_skip_ticks(skip);
+                    sim.masterclock += skip;
+                    // sim_time is derived lazily from masterclock in print_steps.
+                    if (sim.masterclock == target_ticks)
+                        break; // frame budget used up by the jump
+                }
+            }
+
             // only read serial port as fast as the baud rate allows
             bool read_serial = (sim.masterclock >= next_byte_tick);
 
@@ -123,6 +167,8 @@ void sim_loop (void)
         // calculate current speedup ...
         uint32_t ns_now = platform_ns();
         uint32_t ns_elapsed = (ns_now - ns_prev);
+        if (ns_elapsed == 0)
+            ns_elapsed = 1;
         ns_prev = ns_now;
         uint32_t rt_ticks_per_frame = F_CPU / 1e9 * ns_elapsed;
         sim.speedup = (double)ticks_per_frame / rt_ticks_per_frame;
@@ -141,20 +187,20 @@ void sim_loop (void)
                 // we've been too fast (which is good), so let's wait a bit...
                 platform_sleep(sleep_time_us);
                 // ... and schedule as many ticks as the desired speedup requires for the next frame
-                ticks_per_frame = F_CPU / 1e9 * control_frame_ns * args.speedup;
+                ticks_per_frame = scale_ticks_per_frame(1, F_CPU / 1e9 * control_frame_ns * args.speedup, max_ticks_per_frame);
             }
             else {
                 // the host has been too slow to fullfill the desired realtime speedup.
                 // so we do not wait and schedule only as many ticks for the next frame as we're
                 // able to execute in the control fame's time to prevent it from getting longer and longer.
                 sleep_time_us = 0;
-                ticks_per_frame *= (double)control_frame_ns / ns_elapsed;
+                ticks_per_frame = scale_ticks_per_frame(ticks_per_frame, (double)control_frame_ns / ns_elapsed, max_ticks_per_frame);
             }
         }
         else {
             // aim to maximize the simulated ticks thoughput by filling the control frame
             // completely, based on our current knowledge of the time it takes to simulate ticks.
-            ticks_per_frame *= (double)control_frame_ns / ns_elapsed;
+            ticks_per_frame = scale_ticks_per_frame(ticks_per_frame, (double)control_frame_ns / ns_elapsed, max_ticks_per_frame);
         }
 
         target_ticks += ticks_per_frame;
@@ -189,8 +235,12 @@ void sim_socket_out (uint8_t data)
     static bool continuation = 0;
 
     buf[len++] = data;
-    // print when we get to newline or run out of buffer
-    if(data == '\n' || data == '\r' || len >= 127) {
+    // Send only on '\n' (grblHAL lines end "\r\n") or when the buffer is full,
+    // so a whole line goes out as ONE send(). Flushing on '\r' too used to
+    // split every line into body+"\r" and a lone "\n" segment; with Nagle the
+    // trailing byte could stall behind the peer's delayed ACK (~200 ms on
+    // Windows), making senders' status updates lag by a poll period.
+    if(data == '\n' || len >= 127) {
 //        if (args.comment_char && !continuation)
 //            fprintf(args.serial_out_file, "%c ", args.comment_char);
 #ifdef WIN32

@@ -30,6 +30,11 @@
 #define MCU_N_TIMERS 3
 #define MCU_N_GPIO 10
 
+// Upper bound for clock ticks skipped in one jump by the event-driven main loop.
+// Bounds how long a change made from the grbl thread (e.g. stepper wake-up) can go
+// unnoticed to 1 ms of simulated time, mirroring the always-on systick period.
+#define MCU_MAX_SKIP (F_CPU / 1000)
+
 typedef enum  {
     Systick_IRQ = 0,
     UART_IRQ,
@@ -49,27 +54,29 @@ typedef enum  {
     IRQ_N_HANDLERS
 } irq_num_t;
 
+// NOTE: fields are volatile because peripheral "registers" are accessed both from
+// the simulator thread (mcu_master_clock/ISRs) and the grbl thread (HAL calls).
 typedef struct
 {
     volatile bool enable;
-    bool irq_enable;
-    uint32_t value;
-    uint32_t load;
-    uint32_t prescale;
-    uint32_t prescaler;
-    uint32_t compare;
+    volatile bool irq_enable;
+    volatile uint32_t value;
+    volatile uint32_t load;
+    volatile uint32_t prescale;
+    volatile uint32_t prescaler;
+    volatile uint32_t compare;
 } mcu_timer_t;
 
 typedef struct
 {
-    bool rx_irq;
-    bool tx_irq;
-    bool tx_flag;
-    bool rx_irq_enable;
-    bool tx_irq_enable;
-    uint8_t rx_data;
-    uint8_t tx_data;
-    uint32_t cdiv;
+    volatile bool rx_irq;
+    volatile bool tx_irq;
+    volatile bool tx_flag;
+    volatile bool rx_irq_enable;
+    volatile bool tx_irq_enable;
+    volatile uint8_t rx_data;
+    volatile uint8_t tx_data;
+    volatile uint32_t cdiv;
 } mcu_uart_t;
 
 typedef union {
@@ -97,14 +104,14 @@ typedef union {
 
 typedef struct
 {
-    gpio_pins_t dir;
-    gpio_pins_t state;
-    gpio_pins_t irq_mask;
-    gpio_pins_t irq_state;
-    gpio_pins_t rising;
-    gpio_pins_t falling;
-    gpio_pins_t pullup;
-    gpio_pins_t pulldown;
+    volatile gpio_pins_t dir;
+    volatile gpio_pins_t state;
+    volatile gpio_pins_t irq_mask;
+    volatile gpio_pins_t irq_state;
+    volatile gpio_pins_t rising;
+    volatile gpio_pins_t falling;
+    volatile gpio_pins_t pullup;
+    volatile gpio_pins_t pulldown;
 } gpio_port_t;
 
 extern mcu_uart_t uart;
@@ -118,6 +125,9 @@ void mcu_reset (void);
 void mcu_enable_interrupts (void);
 void mcu_disable_interrupts (void);
 void mcu_master_clock (void);
+uint32_t mcu_ticks_to_event (uint32_t max);
+void mcu_skip_ticks (uint32_t ticks);
+void mcu_timer_enable (uint_fast8_t timer_id, bool on);
 void mcu_register_irq_handler (interrupt_handler handler, irq_num_t irq_num);
 void mcu_gpio_set (gpio_port_t *port, uint16_t pins, uint16_t mask);
 uint8_t mcu_gpio_get (gpio_port_t *port, uint16_t mask);

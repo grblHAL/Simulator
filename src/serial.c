@@ -23,6 +23,7 @@
 */
 
 #include <string.h>
+#include <stdatomic.h>
 
 #include "mcu.h"
 #include "simulator.h"
@@ -46,6 +47,8 @@ static int32_t serialGetC (void)
 
     if(bptr == rxbuffer.head)
         return -1; // no data available else EOF
+
+    atomic_thread_fence(memory_order_acquire);      // Data written before head was published (UART ISR runs on the simulator thread)
 
     data = (int32_t)rxbuffer.data[bptr++];          // Get next character, increment tmp pointer
     rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
@@ -93,6 +96,7 @@ static bool serialPutC (const uint8_t c)
     }
 
     txbuffer.data[txbuffer.head] = c;                           // Add data to buffer
+    atomic_thread_fence(memory_order_release);                  // making sure it is visible before the head pointer (UART ISR reads it on the simulator thread)
     txbuffer.head = next_head;                                  // and update head pointer
 
     uart.tx_irq_enable = 1;                                     // Enable TX interrupts
@@ -165,6 +169,8 @@ static void uart_interrupt_handler (void)
 
         if(txbuffer.head != bptr) {
 
+            atomic_thread_fence(memory_order_acquire);        // Data written before head was published (serialPutC runs on the grbl thread)
+
             uart.tx_data =  txbuffer.data[bptr++];            // Put character in TXT register
             bptr &= (TX_BUFFER_SIZE - 1);                     // and update tmp tail pointer
             uart.tx_irq = 0;
@@ -191,6 +197,7 @@ static void uart_interrupt_handler (void)
                 sim.exit = exit_REQ;
             if(!enqueue_realtime_command((uint8_t)data)) {
                 rxbuffer.data[rxbuffer.head] = (uint8_t)data;  	// Add data to buffer
+                atomic_thread_fence(memory_order_release);      // making sure it is visible before the head pointer (serialGetC reads it on the grbl thread)
                 rxbuffer.head = bptr;                       	// and update pointer
             }
         }

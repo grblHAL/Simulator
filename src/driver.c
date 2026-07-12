@@ -20,10 +20,30 @@
 */
 
 #include <string.h>
+#include <stdatomic.h>
+
+// On the host, the grbl thread and the simulator thread share one (or few) real
+// CPU cores. grbl's main loop and driver_delay_ms's spin loop run at full host
+// speed, so without cooperation they starve the simulator thread and burn a
+// whole core (process CPU ~= 2x wall). Yielding the host CPU here does NOT change
+// simulation timing: the simulated tick at which every event fires is driven by
+// the simulator thread's clock/ISRs, not by how often the grbl thread polls.
+// It only lets the scheduler hand cycles to the simulator thread when the grbl
+// thread would otherwise busy-spin.
+#ifndef WIN32
+#include <sched.h>
+#define sim_yield() sched_yield()
+#else
+// SwitchToThread() hands the rest of the timeslice to another ready thread
+// (the simulator thread) and returns immediately when none is waiting - the
+// Windows equivalent of sched_yield(). windows.h comes in via platform.h.
+#define sim_yield() SwitchToThread()
+#endif
 
 #include "mcu.h"
 #include "driver.h"
 #include "serial.h"
+#include "simulator.h"
 #include "eeprom.h"
 #include "grbl_eeprom_extensions.h"
 #include "platform.h"
@@ -34,10 +54,12 @@
 #define SQUARING_ENABLED 0
 #endif
 
+// NOTE: probe_invert, ticks and delay are shared between the grbl thread and the
+// simulator thread's ISRs; they need volatile/_Atomic so stores are visible across threads.
 static spindle_id_t spindle_id;
-static bool probe_invert;
-static uint32_t ticks = 0;
-static delay_t delay = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
+static volatile bool probe_invert;
+static _Atomic uint32_t ticks = 0;
+static volatile delay_t delay = { .ms = 1, .callback = NULL }; // NOTE: initial ms set to 1 for "resetting" systick timer on startup
 static on_execute_realtime_ptr on_execute_realtime;
 
 void SysTick_Handler (void);
@@ -55,7 +77,8 @@ static void driver_delay_ms (uint32_t ms, void (*callback)(void))
     if((delay.ms = ms) > 0) {
         systick_timer.enable = 1;
         if(!(delay.callback = callback))
-            while(delay.ms);
+            while(delay.ms)
+                sim_yield(); // hand the host CPU to the simulator thread while waiting; delay.ms is decremented by SysTick on the sim thread
     } else if(callback)
         callback();
 }
@@ -112,7 +135,7 @@ static void stepperWakeUp (void)
 {
     timer[STEPPER_TIMER].load = 5000;
     timer[STEPPER_TIMER].value = 0;
-    timer[STEPPER_TIMER].enable = 1;
+    mcu_timer_enable(STEPPER_TIMER, true);   // enable + keep timer_enabled_mask in sync
 
 //    hal.stepper_interrupt_callback();   // start the show
 }
@@ -122,7 +145,7 @@ static void stepperGoIdle (bool clear_signals)
 {
     timer[STEPPER_TIMER].value = 0;
     timer[STEPPER_TIMER].load = 0;
-    timer[STEPPER_TIMER].enable = 0;
+    mcu_timer_enable(STEPPER_TIMER, false);  // disable + keep timer_enabled_mask in sync
 
     if(clear_signals) {
         set_step_outputs((axes_signals_t){0});
@@ -135,7 +158,7 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 {
     timer[STEPPER_TIMER].load = cycles_per_tick;
     timer[STEPPER_TIMER].value = 0;
-    timer[STEPPER_TIMER].enable = 1;
+    mcu_timer_enable(STEPPER_TIMER, true);   // enable + keep timer_enabled_mask in sync
 }
 
 // "Normal" version: Sets stepper direction and pulse pins and starts a step pulse a few nanoseconds later.
@@ -413,13 +436,25 @@ bool driver_setup (settings_t *settings)
 // ensures hardware simulator gets some cycles in "parallel"
 void sim_process_realtime (uint_fast16_t state)
 {
-    //platform_sleep(0); // yield needed? or simply trust the OS's thread scheduler...
+    // heartbeat for the simulator thread: the boot sequence (which flushes the
+    // input stream) is done and the main loop has run since the last beat.
+    // The serial feed is paced against it so a burst of simulated time cannot
+    // deliver input faster than the grbl thread consumes it - mirroring real
+    // hardware, where the main loop runs many times between two serial bytes.
+    sim.grbl_pulse++;
+
+    sim_yield(); // yield to the simulator thread instead of spinning grbl's main loop at full host speed
     on_execute_realtime(state);
 }
 
 uint32_t millis (void)
 {
     return ticks;
+}
+
+bool driver_delay_pending (void)
+{
+    return delay.ms != 0;
 }
 
 bool driver_init ()

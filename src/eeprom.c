@@ -54,9 +54,10 @@ static FILE *eeprom_create_empty_file (void)
     return fp;
 }
 
+static FILE* EEPROM_FP = NULL;
+
 static FILE *eeprom_fp (void)
 {
-    static FILE* EEPROM_FP = NULL;
     static int tried = 0;
 
     if (!EEPROM_FP && !tried) {
@@ -72,8 +73,12 @@ static FILE *eeprom_fp (void)
 
 void eeprom_close (void)
 {
-    FILE* fp = eeprom_fp();
-    fclose(fp);
+    // NOTE: may run from the exit handler while the grbl thread never got as
+    // far as opening the file - do not open (or close) it on its behalf here.
+    if (EEPROM_FP) {
+        fclose(EEPROM_FP);
+        EEPROM_FP = NULL;
+    }
 }
 
 uint8_t eeprom_get_char(uint32_t addr )
