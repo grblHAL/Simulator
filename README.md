@@ -59,11 +59,19 @@ In the setup press the A key and change the serial device to GRBL.
  ![Minicom Connected](doc/readme/images/minicom_connected.png)
 
 
-### Realtime modifications:
+## Debugging on MacOS
+On MacOS, first install these dependencies
+```
+brew install cmake socat minicom
+```
+Follow the same build instructions as on Linux above, then run using:
+```
+socat -d -d pty,raw,echo=0,link=/tmp/ttyGRBLsim "EXEC:'./grblHAL_sim -n -s step.out -b block.out',pty,raw,echo=0"
+```
+
+## Realtime modifications:
 
   Now simulates microcontroller peripherals in separate thread.  Runs in *aproximate* realtime.  Emphasis on  * **Approximate** *.  Work is underway to speed it up.
-
-
 
 
 ## Validator
