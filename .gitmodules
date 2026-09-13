@@ -1,3 +1,6 @@
 [submodule "src/grbl"]
 	path = src/grbl
 	url = https://github.com/grblHAL/core
+[submodule "src/sdcard"]
+	path = src/sdcard
+	url = https://github.com/grblHAL/Plugin_SD_card/
