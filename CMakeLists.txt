@@ -30,6 +30,7 @@ configure_file(
 )
 
 include(src/grbl/CMakeLists.txt)
+include(src/sdcard/CMakeLists.txt)
 
 if (WIN32)
     add_compile_definitions(PLATFORM_WINDOWS)
@@ -74,17 +75,19 @@ add_executable(grblHAL_sim
     src/mcu.c
     src/serial.c
     src/grbl_interface.c
+	src/fs_posix.c
     ${platform_SRC}
 )
 
 target_link_libraries(grblHAL_sim PRIVATE
     m
     grbl
+	sdcard
     ${platform_LIB}
 )
 
 # Generated build_info.h lands in the build dir.
-target_include_directories(grblHAL_sim PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(grblHAL_sim PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(grblHAL_validator
     src/eeprom.c

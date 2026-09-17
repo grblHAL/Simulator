@@ -43,8 +43,11 @@
 #include "eeprom.h"
 #include "grbl_interface.h"
 #include "build_info.h"
+#include "fs_posix.h"
 
 #include "grbl/grbllib.h"
+
+extern void fs_stream_init (void);
 
 arg_vars_t args;
 const char* progname;
@@ -55,6 +58,7 @@ static SOCKET socket_fd;
 static int socket_fd = 0;
 #endif
 static fd_set rfds;
+static char *fsdir;
 
 void print_usage(const char* badarg)
 {
@@ -71,6 +75,7 @@ void print_usage(const char* badarg)
       "    -s <step file>     : file to report each step executed.  default = stderr\n"
       "    -e <EEPROM file>   : file containing grblHAL settings.  default = EEPROM.DAT\n"
       "    -p <port>          : port to open raw telnet communication.\n"
+	  "    -d <directory>     : directory to mount as local filing system.\n"
       "    -c<comment_char>   : character to print before each line from grbl.  default = '#'\n"
       "    -n                 : no comments before grbl response lines.\n"
       "    -v                 : print version and build information.\n"
@@ -215,6 +220,15 @@ static void exithandler (int signum)
     eeprom_close();
 }
 
+void board_init (void)
+{
+	if(fsdir) {
+		fs_stream_init();
+        if(!fs_posix_mount("/", fsdir))
+			printf("No such directory: %s\n", fsdir);
+	}
+}
+
 int main(int argc, char *argv[])
 {
     int positional_args = 0;
@@ -311,6 +325,12 @@ int main(int argc, char *argv[])
                 case 'h':
                     print_usage(NULL);
                     return EXIT_SUCCESS;
+
+                case 'd':
+                    argv++; argc--;
+					if((fsdir = malloc(strlen(*argv) + 1)))
+						strcpy(fsdir, *argv);
+					break;
 
                 default:
                     print_usage(*argv);

@@ -20,6 +20,19 @@
 
 */
 
+#include <stdbool.h>
+
+#ifdef _WIN32
+#define FS_FATFS    0b000001
+#define FS_SDCARD   0b000010
+#define FS_LFS      0b000100
+#define FS_LFS_ROOT 0b001000
+#define FS_YMODEM   0b010000
+#define FS_POSIX    0b100000
+#else
+#include "grbl/driver_opts.h"
+#endif
+
 #define portINT(p) portQ(p)
 #define portQ(p) GPIO ## p ## _IRQ
 
@@ -61,7 +74,8 @@
 #define PROBE_CONNECTED_BIT (1<<PROBE_CONNECTED_PIN)
 #define PROBE_MASK          (PROBE_BIT|PROBE_CONNECTED_BIT)
 
-#include <stdbool.h>
+#undef FS_ENABLE
+#define FS_ENABLE (FS_POSIX)
 
 // true while a hal.delay_ms() countdown is running (e.g. the grbl thread blocked in a G4 dwell)
 bool driver_delay_pending (void);

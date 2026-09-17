@@ -461,6 +461,11 @@ bool driver_delay_pending (void)
     return delay.ms != 0;
 }
 
+__attribute__((weak)) void board_init (void)
+{
+    // NOOP
+}
+
 bool driver_init ()
 {
     mcu_reset();
@@ -472,7 +477,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "260817";
+    hal.driver_version = "260913";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -543,6 +548,8 @@ bool driver_init ()
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
+	
+	board_init();
 
     // no need to move version check before init - compiler will fail any signature mismatch for existing entries
     return hal.version == 10;
