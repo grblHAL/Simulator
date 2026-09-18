@@ -83,10 +83,16 @@ $ grblHAL_validator GCODE_FILE
 to validate that grblHAL will parse your GCODE with no errors.
 
 ## Raw telnet connection
-**NEW** 
 
 Use the `-p <port>` command line argument to start a raw telnet server for communication instead of using serial simulation via stdin/stdout.
 This frees up stdin for input to trigger hardware events such as feed hold, cycle start or setting/clearing limit switches. 
+
+## SD card emulation
+**NEW** 
+
+Use the `-d <directory>` command line argument to mount the specified host directory as the root VFS file system.
+> [!NOTE]
+> Not yet 100% complete and ond only lightly tested on Linux. At least running gcode and macros should work.
 
 ## Maintainers
 - Created by Jens Geisler, Adam Shelly
@@ -99,4 +105,4 @@ No microcontroller required. When the executable is run, the user should be able
 *WARNING: grblHAL Sim is under heavy development.* So many things may not work, or respond in ways unexpected. At the moment, this code is a proof-of-concept.
 
 ---
-2025-09-21
+2026-09-18
