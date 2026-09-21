@@ -92,12 +92,12 @@ This frees up stdin for input to trigger hardware events such as feed hold, cycl
 
 Use the `-d <directory>` command line argument to mount the specified host directory as the root VFS file system.
 > [!NOTE]
-> Not yet 100% complete and ond only lightly tested on Linux. At least running gcode and macros should work.
+> Not yet 100% complete and and only lightly tested on Linux. At least running gcode and macros should work.
 
 ## Maintainers
 - Created by Jens Geisler, Adam Shelly
 
-- Modified by Terje Io for grblHAL. Original implementation for Grbl can be found [here](https://github.com/grbl/grbl-sim).
+- Modified by Terje Io and [contributors](https://github.com/grblHAL/Simulator/pulls?q=is%3Apr+state%3Aclosed) for grblHAL. Original implementation for Grbl can be found [here](https://github.com/grbl/grbl-sim).
 
 This repository contains an experimental grblHAL simulator that compiles the main grblHAL source code into a wrapped executable for use on a computer.
 No microcontroller required. When the executable is run, the user should be able to interact with the grblHAL simulator as if connected to a microcontroller board with grblHAL.
