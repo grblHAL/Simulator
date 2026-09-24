@@ -22,5 +22,6 @@
 
 void grbl_app_init(void);  //call to setup ISRs and local tracking vars
 void grbl_per_tick(void);  //call per tick to print steps
-void grbl_per_byte(void);  //call per incoming byte to print block info
+void grbl_per_byte(void);  //call per incoming byte (simulator thread)
+void grbl_print_recent_block(void);  //grbl thread only: print newest planned block
 void grbl_app_exit(void);  //call to shutdown cleanly
