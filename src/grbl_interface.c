@@ -151,16 +151,27 @@ void grbl_per_byte (void)
                 sim.exit = exit_REQ;
                 break;
         }
+    }
+    // Block printing is NOT done here: this runs on the simulator thread, and
+    // printBlock() reads the planner - see grbl_print_recent_block().
+}
 
-        // printBlock() runs on the sim thread; in socket mode its default
-        // stdout target is a live console, and a console write that stalls
-        // (Windows QuickEdit text selection blocks writers outright, and
-        // conhost rendering is slow even when healthy) freezes the entire
-        // simulator - serial polling included. Only print when -b redirected
-        // block output to a file.
-        if(args.block_out_file != stdout)
-            printBlock();   //maybe print newest block
-    } else
+// Print the most recently planned block to the -b block log. Must run on the grbl
+// thread (it's called from sim_process_realtime, the grbl.on_execute_realtime hook),
+// never on the simulator thread: printBlock() reads the planner through
+// plan_get_recent_block() (block_buffer.head->prev), and plan_reset() on the grbl
+// thread reallocates and relinks that buffer. Called from the simulator thread, as it
+// used to be from grbl_per_byte(), it could follow a half-updated pointer and
+// segfault - about 1 run in 60 under load, most often while grbl_enter() was
+// resetting the planner (and with no client connected, printBlock() ran
+// unconditionally).
+void grbl_print_recent_block (void)
+{
+    // In socket mode stdout is a live console, and a console write that stalls
+    // (Windows QuickEdit text selection blocks writers outright, and conhost
+    // rendering is slow even when healthy) would freeze the grbl thread. Only print
+    // there when -b redirected block output to a file.
+    if(!sim.socket_fd || args.block_out_file != stdout)
         printBlock();   //maybe print newest block
 }
 

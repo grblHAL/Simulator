@@ -46,6 +46,7 @@
 #include "simulator.h"
 #include "eeprom.h"
 #include "grbl_eeprom_extensions.h"
+#include "grbl_interface.h"
 #include "platform.h"
 
 #include "grbl/hal.h"
@@ -442,6 +443,8 @@ void sim_process_realtime (uint_fast16_t state)
     // deliver input faster than the grbl thread consumes it - mirroring real
     // hardware, where the main loop runs many times between two serial bytes.
     sim.grbl_pulse++;
+
+    grbl_print_recent_block(); // on this (grbl) thread, which owns the planner
 
     sim_yield(); // yield to the simulator thread instead of spinning grbl's main loop at full host speed
     on_execute_realtime(state);
