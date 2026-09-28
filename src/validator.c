@@ -87,15 +87,15 @@ int32_t serial_read()
     if (data == PLATFORM_EXTRA_CR)
         return(0);
 
-    if (args.echo)
-        fputc(data, args.output_file); 
-
     plan_reset();
 
     if (sys.abort || feof(args.input_file) || data == 0x06 || data == -1) { 
         sys.abort = 1;
         return SERIAL_NO_DATA;
     }
+
+    if (args.echo)
+        fputc(data, args.output_file); 
 
     return data;
 }
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
        return -1;
 
     memset(&sys, 0, sizeof(system_t));
-    sys.cold_start = true;
+    sys.cold_start = sys.driver_started = true;
 
     // TODO: read settings from EEPROM.dat if exists?
     nvs_buffer_alloc();
@@ -213,6 +213,7 @@ int main(int argc, char *argv[])
     hal.stream.read = serial_read;
     hal.stream.write = serial_write;
     hal.stream.write_all = serial_write;
+	hal.stream.is_connected = stream_connected;
 
 // state_set(STATE_CHECK_MODE);
         

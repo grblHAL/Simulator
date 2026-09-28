@@ -122,23 +122,21 @@ static coolant_state_t coolantGetState (void)
     return state;
 }
 
+// Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
+
 static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-    *ptr |= bits;
+    __atomic_fetch_or(ptr, bits, __ATOMIC_SEQ_CST);
 }
 
 static uint_fast16_t bitsClearAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
-    uint_fast16_t prev = *ptr;
-    *ptr &= ~bits;
-    return prev;
+    return __atomic_fetch_and(ptr, (uint_fast16_t)~bits, __ATOMIC_SEQ_CST);
 }
 
 static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t value)
 {
-    uint_fast16_t prev = *ptr;
-    *ptr = value;
-    return prev;
+    return __atomic_exchange_n(ptr, value, __ATOMIC_SEQ_CST);
 }
 
 void settings_changed (settings_t *settings, settings_changed_flags_t changed)
@@ -159,7 +157,7 @@ uint16_t serial_get_rx_buffer_available()
 bool driver_init ()
 {
     hal.info = "Validator";
-    hal.driver_version = "260817";
+    hal.driver_version = "260927";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;

@@ -354,12 +354,7 @@ static coolant_state_t coolantGetState (void)
 }
 
 // Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
-//
-// On a real MCU these are made atomic by masking interrupts around a read-modify-write.
-// In the simulator the "ISRs" (e.g. the serial RX handler that sets
-// EXEC_STATUS_REPORT for a '?') run on the hardware thread while grblHAL's main loop
-// runs on the grbl thread, so a plain `*ptr |= bits` can interleave with the other
-// thread's clear and lose one of the updates. Use real atomic read-modify-writes.
+
 static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
     __atomic_fetch_or(ptr, bits, __ATOMIC_SEQ_CST);
@@ -476,7 +471,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "260913";
+    hal.driver_version = "260924";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
