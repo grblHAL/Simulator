@@ -471,7 +471,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "260924";
+    hal.driver_version = "261007";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -531,7 +531,6 @@ bool driver_init ()
     hal.set_value_atomic = valueSetAtomic;
     hal.get_elapsed_ticks = millis;
 
-    hal.driver_cap.amass_level = 3;
     hal.coolant_cap.flood = On;
     hal.coolant_cap.mist = On;
     // hal.driver_cap.software_debounce = On;

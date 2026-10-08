@@ -157,7 +157,7 @@ uint16_t serial_get_rx_buffer_available()
 bool driver_init ()
 {
     hal.info = "Validator";
-    hal.driver_version = "260927";
+    hal.driver_version = "261007";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;
@@ -189,7 +189,6 @@ bool driver_init ()
     hal.set_value_atomic = valueSetAtomic;
 
     hal.signals_cap.safety_door_ajar = On;
-    hal.driver_cap.amass_level = 3;
     hal.coolant_cap.flood = On;
     hal.coolant_cap.mist = On;
     hal.driver_cap.control_pull_up = On;
