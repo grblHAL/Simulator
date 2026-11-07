@@ -37,14 +37,15 @@
 #include "grbl/hal.h"
 #include "grbl/protocol.h"
 #include "grbl/platform.h"
+#include "grbl/strutils.h"
 #include "grbl/vfs.h"
 
 static char _cwd[51] = "/";
-static vfs_path_t cwd = { .name = _cwd, .len = sizeof(_cwd) - 1 }, root = {0};
+static string_t cwdb = { .name = _cwd, .len = sizeof(_cwd) - 1 }, cwd = { .name = _cwd, .len = sizeof(_cwd) - 1, .base = &cwdb }, root = {0};
 
 FLASHMEM static const char *get_path (const char *path)
 {
-    static vfs_path_t abspath = {0};
+    static string_t abspath = {0};
 
     if(root.len + strlen(cwd.name) + strlen(path) + 1 > abspath.len) {
         abspath.len = max(50, root.len + strlen(cwd.name)) + strlen(path) + 1;
