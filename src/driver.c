@@ -162,7 +162,7 @@ static void stepperGoIdle (bool clear_signals)
 // Sets up stepper driver interrupt timeout, limiting the slowest speed
 static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 {
-    timer[STEPPER_TIMER].load = cycles_per_tick;
+    timer[STEPPER_TIMER].load = cycles_per_tick > 0xFFFFU ? 0xFFFFU : cycles_per_tick;
     timer[STEPPER_TIMER].value = 0;
     mcu_timer_enable(STEPPER_TIMER, true);   // enable + keep timer_enabled_mask in sync
 }
@@ -471,7 +471,7 @@ bool driver_init ()
     systick_timer.enable = 1;
 
     hal.info = "Simulator";
-    hal.driver_version = "261007";
+    hal.driver_version = "261112";
     hal.driver_setup = driver_setup;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.f_step_timer = F_CPU;

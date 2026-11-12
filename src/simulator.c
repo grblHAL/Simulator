@@ -175,19 +175,30 @@ void sim_loop (void)
 
         // ... and how many ticks to simulate next
         if (args.speedup) {
-            // aim for the target speed up, i.e. approximate (scaled) real time
+            // Never let a frame cover more than its real-time
+            // share, and never sleep more than a couple of frames. Without these
+            // the "host too slow" branch could grow the frame to 2^40 ticks (event
+            // skipping makes such frames cheap), run hours of sim time ahead, and
+            // then sleep for minutes to let the wall clock catch up - a hang.
+            const uint64_t rt_ticks_per_control_frame = scale_ticks_per_frame(1, F_CPU / 1e9 * control_frame_ns * args.speedup, max_ticks_per_frame);
+            const int32_t max_sleep_us = 2 * (int32_t)(control_frame_ns / 1000);            // aim for the target speed up, i.e. approximate (scaled) real time
             float speedup_error = args.speedup - sim.speedup;
             // a negative time-error means the host was too fast
             // a positive time error means the either the host was too slow or we waited too long
-            int32_t time_error_us = speedup_error * ns_elapsed / 1000;
+            double time_error = (double)speedup_error * ns_elapsed / 1000.0;
+            int32_t time_error_us = time_error > 1e9 ? 1000000000 : (time_error < -1e9 ? -1000000000 : (int32_t)time_error);
             // for the actual error in the sleep time, we need to remove the previous wait time
             int32_t sleep_error_us = time_error_us - sleep_time_us;
             sleep_time_us = -1 * sleep_error_us; // looks like a simple P-controler is just fine
+            if (sleep_time_us > max_sleep_us)
+                sleep_time_us = max_sleep_us;
             if (sleep_time_us > 0) {
                 // we've been too fast (which is good), so let's wait a bit...
                 platform_sleep(sleep_time_us);
                 // ... and schedule as many ticks as the desired speedup requires for the next frame
                 ticks_per_frame = scale_ticks_per_frame(1, F_CPU / 1e9 * control_frame_ns * args.speedup, max_ticks_per_frame);
+				if (ticks_per_frame > rt_ticks_per_control_frame)
+                    ticks_per_frame = rt_ticks_per_control_frame;
             }
             else {
                 // the host has been too slow to fullfill the desired realtime speedup.

@@ -22,6 +22,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdatomic.h>
+#include <sched.h>
 
 #include "mcu.h"
 #include "simulator.h"
@@ -30,6 +32,24 @@
 static volatile bool irq_enable = false;
 static volatile bool booted = false;
 static interrupt_handler isr[IRQ_N_HANDLERS];
+static atomic_bool irq_on = false;
+static atomic_int in_isr = 0;
+static _Thread_local bool on_isr_thread = false;
+
+static inline bool isr_enter (void)
+{
+    on_isr_thread = true;
+    atomic_store(&in_isr, 1);
+    if(atomic_load(&irq_on))
+        return true;
+    atomic_store(&in_isr, 0);
+    return false;
+}
+
+static inline void isr_exit (void)
+{
+    atomic_store(&in_isr, 0);
+}
 
 // Per-idle-tick fast-path gates (see mcu_master_clock):
 //  - timer_enabled_mask: bit i set while timer[i] is enabled. Lets an idle tick
@@ -60,8 +80,8 @@ void mcu_reset (void)
 {
     uint_fast8_t i;
 
-    irq_enable = false;
-
+	atomic_store(&irq_on, false);
+ 
     for(i = 0; i < IRQ_N_HANDLERS; i++)
         isr[i] = default_handler;
 
@@ -74,7 +94,7 @@ void mcu_reset (void)
     timer_enabled_mask = 0;
     gpio_irq_pending = false;
 
-    irq_enable = true;
+    atomic_store(&irq_on, true);
     booted = true;
 }
 
@@ -99,12 +119,17 @@ void mcu_register_irq_handler (interrupt_handler handler, irq_num_t irq_num)
 
 void mcu_enable_interrupts (void)
 {
-    irq_enable = true;
+    atomic_store(&irq_on, true);
 }
 
 void mcu_disable_interrupts (void)
 {
-    irq_enable = false;
+    atomic_store(&irq_on, false);
+	// An ISR disabling interrupts must not wait for itself.
+    if(!on_isr_thread) {
+        while(atomic_load(&in_isr))
+            sched_yield();
+    }
 }
 
 void mcu_master_clock (void)
@@ -136,8 +161,10 @@ void mcu_master_clock (void)
                 if(timer[i].value == 0)
                     timer[i].value = timer[i].load;
                 else if(--timer[i].value == 0) {
-                    if(timer[i].irq_enable && irq_enable)
+                    if(timer[i].irq_enable && isr_enter()) {
                         isr[Timer0_IRQ + i]();
+						isr_exit();
+                   }
                     timer[i].value = timer[i].load;
                 }
             }
@@ -159,8 +186,10 @@ void mcu_master_clock (void)
         if(systick_timer.value == 0)
             systick_timer.value = systick_timer.load;
         else if(--systick_timer.value == 0) {
-            if(systick_timer.irq_enable && irq_enable)
+            if(systick_timer.irq_enable && isr_enter()) {
                 isr[Systick_IRQ]();
+				isr_exit();
+			}
             systick_timer.value = systick_timer.load;
         }
     }
@@ -285,8 +314,10 @@ void simulate_serial (void)
         uart.tx_flag = 0;
     }
 
-    if((uart.tx_irq = uart.tx_irq_enable))
+    if((uart.tx_irq = uart.tx_irq_enable) && isr_enter()) {
         isr[UART_IRQ]();
+		isr_exit();
+	}
 
     // Deliver at most one byte per grbl main-loop pass (see sim_process_realtime):
     // a pulse of 0 means the grbl thread is still booting and would flush the input,
@@ -294,13 +325,16 @@ void simulate_serial (void)
     // byte slot and try again at the next one, no input is lost.
     static uint32_t pulse_seen = 0;
 
-    if(sim.grbl_pulse != pulse_seen && uart.rx_irq_enable && !uart.rx_irq && hal.stream.get_rx_buffer_free() > 100) {
-        uint8_t char_in = sim.getchar();
-        if (char_in) {
-            pulse_seen = sim.grbl_pulse;
-            uart.rx_data = char_in;
-            uart.rx_irq = 1;
-            isr[UART_IRQ]();
+    if(sim.grbl_pulse != pulse_seen && uart.rx_irq_enable && !uart.rx_irq && isr_enter()) {
+        if(hal.stream.get_rx_buffer_free() > 100) {
+            uint8_t char_in = sim.getchar();
+            if(char_in) {
+                pulse_seen = sim.grbl_pulse;
+                uart.rx_data = char_in;
+                uart.rx_irq = 1;
+                isr[UART_IRQ]();
+            }
         }
+        isr_exit();
     }
 }
