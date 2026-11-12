@@ -128,7 +128,7 @@ void mcu_disable_interrupts (void)
 	// An ISR disabling interrupts must not wait for itself.
     if(!on_isr_thread) {
         while(atomic_load(&in_isr))
-            sched_yield();
+            sim_yield();
     }
 }
 
